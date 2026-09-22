@@ -12,9 +12,12 @@ _SERVER_INSTRUCTIONS = """Hakowan authors deterministic 3D visualizations.
 Inspect data first and never invent attributes. Start from get_spec_template;
 request a compact schema fragment only when a field is unclear, and request the
 full schema only as a last resort. Validate strictly, chain subsequent calls by
-spec_id, and repair with minimal JSON Pointer patches. Render before completion;
-observe only when visual evidence is needed. Paths stay inside the workspace.
-Arbitrary Python functions are not accepted; use safe expression specs.
+spec_id, and repair with minimal JSON Pointer patches. Preserve explicit output
+passes and projection. Fit a perspective camera for comparisons, named
+multilayer views, and occlusion unless another projection is explicitly
+requested. Render before completion; observe only when visual evidence is
+needed. Paths stay inside the workspace. Arbitrary Python functions are not
+accepted; use safe expression specs.
 """
 
 
@@ -68,9 +71,12 @@ def create_server(
         data_id: str = "data",
         attribute: str = "value",
         label_value: int | float = 1,
+        categories: bool = False,
     ) -> dict[str, Any]:
         """List or return minimal canonical FigureSpec templates."""
-        return service.get_spec_template(name, data_id, attribute, label_value)
+        return service.get_spec_template(
+            name, data_id, attribute, label_value, categories
+        )
 
     @mcp.tool(name="get_spec", annotations=read_only)
     def get_spec(spec_id: str) -> dict[str, Any]:
@@ -118,7 +124,7 @@ def create_server(
 
     @mcp.tool(name="fit_camera", annotations=read_only)
     def fit_camera(
-        spec: dict[str, Any] | str,
+        spec: str,
         data_bindings: dict[str, str] | None = None,
         backend: str = "webgl",
         direction: str | list[float] = "isometric",
@@ -130,7 +136,7 @@ def create_server(
         up_axis: str = "y",
         include_spec: bool = False,
     ) -> dict[str, Any]:
-        """Fit only scene.camera while preserving explicit projection and output intent."""
+        """Fit scene.camera from a validated spec_id while preserving intent."""
         return service.fit_camera(
             spec,
             data_bindings=data_bindings,

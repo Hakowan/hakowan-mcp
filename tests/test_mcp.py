@@ -108,6 +108,14 @@ def test_spec_templates_are_minimal_and_schema_valid(tmp_path):
                 "reflectance"
             ]
             assert set(reflectance) == {"kind", "data"}
+    categorical = service.get_spec_template(
+        "surface-scalar", attribute="region", categories=True
+    )["spec"]
+    categorical_field = categorical["root"]["spec"]["channels"]["material"][
+        "reflectance"
+    ]
+    assert categorical_field["categories"] is True
+    assert categorical_field["colormap"] == "set1"
     isolated = service.get_spec_template(
         "isolate-label", attribute="region", label_value=1
     )["spec"]

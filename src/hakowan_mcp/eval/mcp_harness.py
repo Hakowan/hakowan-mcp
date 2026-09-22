@@ -150,6 +150,8 @@ def _tool_identity(event: dict[str, Any]) -> str:
             return path.removeprefix("xd://")
         if isinstance(path, str) and path.startswith("mcp://"):
             return path
+    if name.startswith("hakowan."):
+        return "mcp__hakowan_" + name.removeprefix("hakowan.")
     return name
 
 
@@ -241,7 +243,7 @@ Required procedure:
 3. Author one complete canonical FigureSpec whose geometry source is exactly {{"kind":"external","id":"data"}}.
 4. Call validate_spec with backend="webgl", strict=true, compile_check=true, and data_bindings={{"data":"{source}"}}. Continue with the returned spec_id.
 5. Repair failures with minimal apply_patch operations against the spec_id, at most twice.
-6. Preserve explicit requested attributes, output passes, and camera projection exactly. When framing matters, call fit_camera once with the requested projection.
+6. Preserve explicit requested attributes, output passes, and camera projection exactly. Fit a perspective camera once for comparisons, named multilayer views, and occlusion unless another projection is requested.
 7. Call get_spec once at the end, but return only its spec_id.
 
 Return only one JSON object, without Markdown or prose:

@@ -185,9 +185,12 @@ definition names instead of embedding them; set `include_dependencies=true`
 only when a self-contained JSON Schema fragment is required. Use
 `get_schema(fragment="full")` or the `hakowan://schema` resource only as a last
 resort.
-
 `get_spec_template()` lists minimal canonical patterns for surface and point
-fields, vector glyphs, wireframe overlays, clipping planes, and layouts.
+fields, vector glyphs, wireframe overlays, label isolation, named overlays,
+backend passes, clipping planes, and layouts. Pass `categories=true` to a scalar
+template to select categorical encoding with the `set1` colormap automatically.
+Named multilayer and occlusion workflows should fit a perspective camera unless
+the request explicitly specifies another projection.
 
 ## Data references
 

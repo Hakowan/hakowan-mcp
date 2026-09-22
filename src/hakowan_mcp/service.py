@@ -238,6 +238,7 @@ class HakowanMCPService:
         data_id: str = "data",
         attribute: str = "value",
         label_value: int | float = 1,
+        categories: bool = False,
     ) -> dict[str, Any]:
         """List or return minimal canonical FigureSpec templates."""
         if name is None:
@@ -251,6 +252,7 @@ class HakowanMCPService:
                     data_id=data_id,
                     attribute=attribute,
                     label_value=label_value,
+                    categories=categories,
                 ),
             }
         except KeyError as exc:
@@ -1133,8 +1135,10 @@ class HakowanMCPService:
             "Inspect data and never invent attribute names. Start from the closest "
             "get_spec_template result; request a compact get_schema fragment only "
             "when needed. Validate strictly, then chain calls with spec_id and use "
-            "minimal apply_patch operations for repairs. Fit geometry-dependent "
-            "cameras, render, and observe only when visual evidence is necessary. "
+            "minimal apply_patch operations for repairs. Preserve explicit output "
+            "passes and projection. Fit a perspective camera for comparisons, "
+            "named multilayer views, and occlusion unless another projection was "
+            "requested. Render, and observe only when visual evidence is necessary. "
             "Request full schemas, specs, and manifests only explicitly. Keep every "
             "path inside the configured workspace root."
         )

@@ -58,7 +58,7 @@ _TEMPLATE_DESCRIPTIONS = {
     "clip-plane": "Surface clipped to one plane half-space.",
     "side-by-side": "Two copies of a source arranged along the x axis.",
     "isolate-label": "Keep facets whose existing scalar label equals one value.",
-    "named-overlay": "Two named, independently inspectable surface layers.",
+    "named-overlay": "Two named inspectable layers; fit a perspective camera for comparison or occlusion.",
     "backend-passes": "Surface configured for WebGL beauty and depth output.",
 }
 
@@ -139,6 +139,7 @@ def spec_template(
     data_id: str = "data",
     attribute: str = "value",
     label_value: int | float = 1,
+    categories: bool = False,
 ) -> dict[str, Any]:
     """Return a minimal validated FigureSpec template with optional fields omitted."""
     if not data_id:
@@ -172,6 +173,10 @@ def spec_template(
                 },
             }
         }
+        if categories:
+            root["spec"]["channels"]["material"]["reflectance"].update(
+                {"colormap": "set1", "categories": True}
+            )
     elif normalized == "point-vector-size":
         root = _layer(data_id, mark="point")
         root["spec"]["channels"] = {
