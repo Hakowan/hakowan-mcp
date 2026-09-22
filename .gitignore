@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.pixi/
+dist/
+build/
+*.egg-info/
+llm-eval-report.json
+llm-eval-report.html
+benchmarks/results/
+*.responses.json
+*.report.json
+*.report.html
