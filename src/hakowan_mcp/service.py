@@ -694,6 +694,20 @@ class HakowanMCPService:
         except Exception as exc:
             return self._error("observe.failed", exc, output_dir=output_dir)
 
+    @staticmethod
+    def _compact_observation_response(result: dict[str, Any]) -> dict[str, Any]:
+        keys = (
+            "ok",
+            "spec_id",
+            "validation",
+            "output_dir",
+            "manifest_path",
+            "evidence",
+            "visual_diagnostics",
+            "error",
+        )
+        return {key: result[key] for key in keys if key in result}
+
     def evaluate_visual_patch(
         self,
         spec: SpecInput,
@@ -704,6 +718,7 @@ class HakowanMCPService:
         data_bindings: dict[str, str] | None = None,
         visual_criteria: dict[str, float] | None = None,
         max_operations: int = 3,
+        include_details: bool = False,
     ) -> dict[str, Any]:
         """Accept a visual patch only when measured evidence improves safely."""
         try:
@@ -742,17 +757,20 @@ class HakowanMCPService:
                 include_spec=True,
             )
             if not patched["ok"]:
-                return {
+                result = {
                     "ok": True,
                     "accepted": False,
                     "rolled_back": True,
                     "reason": "candidate_validation_failed",
-                    "spec": original,
                     "spec_id": original_id,
                     "patch": operations,
-                    "before": before,
+                    "before": self._compact_observation_response(before),
                     "candidate_validation": patched,
                 }
+                if include_details:
+                    result["spec"] = original
+                    result["before"] = before
+                return result
             after = self.observe_spec(
                 patched["spec"],
                 self.paths.display(root / "after"),
@@ -763,19 +781,23 @@ class HakowanMCPService:
                 include_manifest=True,
             )
             if not after["ok"]:
-                return {
+                result = {
                     "ok": True,
                     "accepted": False,
                     "rolled_back": True,
                     "reason": "candidate_observation_failed",
-                    "spec": original,
                     "spec_id": original_id,
                     "candidate_spec_id": after.get("spec_id", patched.get("spec_id")),
-                    "candidate_spec": patched["spec"],
                     "patch": operations,
-                    "before": before,
-                    "after": after,
+                    "before": self._compact_observation_response(before),
+                    "after": self._compact_observation_response(after),
                 }
+                if include_details:
+                    result["spec"] = original
+                    result["candidate_spec"] = patched["spec"]
+                    result["before"] = before
+                    result["after"] = after
+                return result
             before_quality = self._visual_quality(before["manifest"], criteria)
             after_quality = self._visual_quality(after["manifest"], criteria)
             tolerance = 1e-9
@@ -793,7 +815,7 @@ class HakowanMCPService:
             selected = FigureSpec.model_validate(
                 patched["spec"] if accepted else original
             )
-            return {
+            result = {
                 "ok": True,
                 "accepted": accepted,
                 "rolled_back": not accepted,
@@ -804,9 +826,7 @@ class HakowanMCPService:
                     if regressions
                     else "no_measurable_improvement"
                 ),
-                "spec": selected.to_dict(),
                 "spec_id": self._store_spec(selected),
-                "candidate_spec": patched["spec"],
                 "candidate_spec_id": after.get("spec_id", patched.get("spec_id")),
                 "patch": operations,
                 "comparison": {
@@ -815,9 +835,15 @@ class HakowanMCPService:
                     "improvements": improvements,
                     "regressions": regressions,
                 },
-                "before": before,
-                "after": after,
+                "before": self._compact_observation_response(before),
+                "after": self._compact_observation_response(after),
             }
+            if include_details:
+                result["spec"] = selected.to_dict()
+                result["candidate_spec"] = patched["spec"]
+                result["before"] = before
+                result["after"] = after
+            return result
         except Exception as exc:
             return self._error("visual.patch_failed", exc, output_dir=output_dir)
 
@@ -1090,12 +1116,11 @@ class HakowanMCPService:
     def agent_instructions(self) -> str:
         """Return the recommended deterministic agent workflow."""
         return (
-            "Use Hakowan as a deterministic 3D visualization tool. First call "
-            "inspect_data and never invent attribute names. Retrieve get_schema and, "
-            "when available, relevant search_gallery examples. Author canonical "
-            "FigureSpec JSON, then call validate_spec with strict=true. Repair schema "
-            "or semantic failures with apply_patch. Use fit_camera when framing "
-            "matters. Call render_spec and observe_spec for visual evidence. Use "
-            "evaluate_visual_patch for bounded repairs and retain only an accepted "
-            "candidate. Keep all paths inside the configured workspace root."
+            "Inspect data and never invent attribute names. Start from the closest "
+            "get_spec_template result; request a compact get_schema fragment only "
+            "when needed. Validate strictly, then chain calls with spec_id and use "
+            "minimal apply_patch operations for repairs. Fit geometry-dependent "
+            "cameras, render, and observe only when visual evidence is necessary. "
+            "Request full schemas, specs, and manifests only explicitly. Keep every "
+            "path inside the configured workspace root."
         )

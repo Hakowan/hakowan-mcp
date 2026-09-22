@@ -495,10 +495,13 @@ def test_visual_patch_accepts_improvement_and_rolls_back_regression(tmp_path):
 
     assert accepted["accepted"]
     assert not accepted["rolled_back"]
+    assert "spec" not in accepted
+    assert "manifest" not in accepted["before"]
     assert "occupancy_distance" in accepted["comparison"]["improvements"]
     assert not rejected["accepted"]
     assert rejected["rolled_back"]
-    assert rejected["spec"] == accepted["spec"]
+    assert rejected["spec_id"] == accepted["spec_id"]
+    assert "spec" not in rejected
     assert "occupancy_distance" in rejected["comparison"]["regressions"]
 
 

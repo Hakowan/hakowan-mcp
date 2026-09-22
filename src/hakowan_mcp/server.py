@@ -200,8 +200,9 @@ def create_server(
         data_bindings: dict[str, str] | None = None,
         visual_criteria: dict[str, float] | None = None,
         max_operations: int = 3,
+        include_details: bool = False,
     ) -> dict[str, Any]:
-        """Accept a patch only if deterministic visual evidence improves."""
+        """Compare compact evidence; include full specs/manifests only on request."""
         return service.evaluate_visual_patch(
             spec,
             operations,
@@ -211,6 +212,7 @@ def create_server(
             data_bindings,
             visual_criteria,
             max_operations,
+            include_details,
         )
 
     @mcp.tool(name="apply_patch", annotations=read_only)

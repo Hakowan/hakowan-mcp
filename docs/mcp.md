@@ -140,9 +140,10 @@ depth order, visible attribute ranges, legend presence, and contrast.
 
 `evaluate_visual_patch` applies at most three operations by default, validates
 the candidate, captures before/after evidence under identical settings, and
-accepts only a measurable change with no metric regression. A rejected
-candidate returns `rolled_back=true` and the original canonical spec. Both
-observation bundles remain available for inspection.
+accepts only a measurable change with no metric regression. Its default response
+uses spec handles and compact evidence. Set `include_details=true` only when
+full canonical specs and observation manifests must be returned inline; all
+artifacts remain available through their workspace paths.
 
 ## Specification terminology and composition
 
