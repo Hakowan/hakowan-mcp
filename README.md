@@ -36,6 +36,13 @@ hakowan-mcp --root /path/to/project \
 See [`docs/mcp.md`](docs/mcp.md) for tools, resources, prompts, host
 configuration, path confinement, and transport details.
 
+## Token-efficient workflow
+
+The server returns compact schema catalogs, spec handles, validation results,
+and visual evidence by default. Agents should start with `inspect_data` and
+`get_spec_template`, chain later calls with `spec_id`, and request full schemas,
+specifications, or manifests only when needed.
+
 ## Evaluation
 
 The installed evaluator targets canonical Hakowan `FigureSpec` JSON:

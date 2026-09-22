@@ -58,21 +58,26 @@ def test_path_policy_rejects_escape_and_symlinks(tmp_path):
         policy.resolve("../outside.txt")
 
 
-def test_schema_fragments_are_self_contained_and_smaller(tmp_path):
+def test_schema_catalog_is_compact_and_dependencies_are_opt_in(tmp_path):
     service = HakowanMCPService(root=tmp_path)
 
-    full = service.get_schema()
-    fragment = service.get_schema("transform.clip")
+    catalog = service.get_schema()
+    full = service.get_schema("full")
+    compact = service.get_schema("channel.vector_field")
+    expanded = service.get_schema("channel.vector_field", include_dependencies=True)
     missing = service.get_schema("transform.unknown")
 
-    assert full["ok"] and "transform.clip" in full["available_fragments"]
-    assert fragment["ok"] and fragment["schema"]["$ref"].endswith("/ClipTransformSpec")
-    assert set(fragment["schema"]["$defs"]) == {"ClipTransformSpec"}
-    assert len(json.dumps(fragment["schema"])) < len(json.dumps(full["schema"]))
-    vector = service.get_schema("channel.vector_field")["schema"]
-    references = set(re.findall(r'"#/$defs/([^\"]+)"', json.dumps(vector)))
-    assert references <= set(vector["$defs"])
-    assert "AttributeSpec" in vector["$defs"]
+    assert catalog["ok"] and "schema" not in catalog
+    assert "surface-scalar" in {item["name"] for item in catalog["available_templates"]}
+    assert full["schema"]["$id"] == catalog["schema_id"]
+    assert compact["schema"]["self_contained"] is False
+    assert set(compact["schema"]["$defs"]) == {"VectorFieldChannelSpec"}
+    assert "AttributeSpec" in compact["schema"]["referenced_definitions"]
+    references = set(re.findall(r'"#/$defs/([^\"]+)"', json.dumps(expanded)))
+    assert expanded["schema"]["self_contained"] is True
+    assert references <= set(expanded["schema"]["$defs"])
+    assert len(json.dumps(catalog)) < 10_000
+    assert len(json.dumps(compact)) < len(json.dumps(expanded))
     assert missing["error"]["code"] == "schema.fragment_unknown"
 
 
@@ -90,6 +95,11 @@ def test_spec_templates_are_minimal_and_schema_valid(tmp_path):
         assert "scene" not in result["spec"]
         assert "roi_box" not in json.dumps(result["spec"])
         hkw.FigureSpec.model_validate(result["spec"])
+        if name in {"surface-scalar", "point-scalar"}:
+            reflectance = result["spec"]["root"]["spec"]["channels"]["material"][
+                "reflectance"
+            ]
+            assert set(reflectance) == {"kind", "data"}
 
 
 def test_spec_handles_chain_without_resending_json(tmp_path):
@@ -97,7 +107,7 @@ def test_spec_handles_chain_without_resending_json(tmp_path):
     service = HakowanMCPService(root=tmp_path)
 
     validated = service.validate_spec(_spec(mesh_path))
-    same = service.validate_spec(validated["spec"])
+    same = service.validate_spec(validated["spec_id"])
     compiled = service.compile_spec(validated["spec_id"])
     fitted = service.fit_camera(validated["spec_id"], direction="isometric")
     patched = service.apply_patch(
@@ -106,13 +116,17 @@ def test_spec_handles_chain_without_resending_json(tmp_path):
     )
     fetched = service.get_spec(patched["spec_id"])
     rendered = service.render_spec(patched["spec_id"], "handled.html")
+    assert "spec" not in validated
+    assert "spec" not in fitted
+    assert "spec" not in patched
+    assert "spec" in service.validate_spec(validated["spec_id"], include_spec=True)
 
     assert validated["spec_id"].startswith("sha256:")
     assert same["spec_id"] == validated["spec_id"]
     assert compiled["spec_id"] == validated["spec_id"]
     assert fitted["spec_id"] != validated["spec_id"]
     assert patched["spec_id"] != fitted["spec_id"]
-    assert fetched["spec"] == patched["spec"]
+    assert fetched["spec"]["scene"]["camera"]["fov"] == 40
     assert rendered["spec_id"] == patched["spec_id"]
     assert not service.get_spec("sha256:missing")["ok"]
 
@@ -150,7 +164,8 @@ def test_inspect_validate_compile_render_patch_tools(tmp_path):
     assert validated["ok"] and validated["validation"]["valid"]
     assert compiled["ok"] and compiled["scene"]["views"][0]["facet_count"] == 1
     assert patched["ok"]
-    assert patched["spec"]["scene"]["camera"]["fov"] == 40
+    patched_spec = service.get_spec(patched["spec_id"])["spec"]
+    assert patched_spec["scene"]["camera"]["fov"] == 40
     assert rendered["ok"]
     assert (tmp_path / "viewer.html").is_file()
 
@@ -199,7 +214,8 @@ def test_apply_patch_repairs_schema_invalid_input(tmp_path):
         }
     ]
     assert repaired["ok"]
-    assert "unexpected" not in repaired["spec"]["scene"]
+    repaired_spec = service.get_spec(repaired["spec_id"])["spec"]
+    assert "unexpected" not in repaired_spec["scene"]
     assert spec["scene"]["unexpected"] is True
 
     nested = _spec(mesh_path)
@@ -432,14 +448,15 @@ def test_observe_tool_writes_structured_evidence(tmp_path):
     )
 
     assert result["ok"]
-    assert (tmp_path / "observation" / "manifest.json").is_file()
-    assert "visibility" in result["manifest"]
+    manifest_path = tmp_path / result["manifest_path"]
+    assert manifest_path.is_file()
+    assert "manifest" not in result
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    assert "visibility" in manifest
     assert result["evidence"]["summary"]["view_count"] == 1
     assert isinstance(result["visual_diagnostics"], list)
-    assert all(
-        not Path(item["path"]).is_absolute() for item in result["manifest"]["snapshots"]
-    )
-    assert all(len(item["sha256"]) == 64 for item in result["manifest"]["snapshots"])
+    assert all(not Path(item["path"]).is_absolute() for item in manifest["snapshots"])
+    assert all(len(item["sha256"]) == 64 for item in manifest["snapshots"])
 
 
 def test_visual_patch_accepts_improvement_and_rolls_back_regression(tmp_path):
@@ -599,4 +616,4 @@ def test_mcp_stdio_entrypoint(tmp_path):
 
     payload = asyncio.run(exercise())
     assert payload["ok"]
-    assert payload["schema"]["$id"].endswith("/schema/v1.json")
+    assert payload["schema_id"].endswith("/schema/v1.json")

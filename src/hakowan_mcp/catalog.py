@@ -79,8 +79,8 @@ def _references(value: Any) -> set[str]:
     return result
 
 
-def schema_fragment(name: str) -> dict[str, Any]:
-    """Return one self-contained JSON Schema fragment and its dependencies."""
+def schema_fragment(name: str, *, include_dependencies: bool = False) -> dict[str, Any]:
+    """Return one schema definition, optionally with transitive dependencies."""
     normalized = name.strip().lower().replace("/", ".")
     model_name = _FRAGMENT_MODELS.get(normalized)
     schema = json_schema()
@@ -92,15 +92,17 @@ def schema_fragment(name: str) -> dict[str, Any]:
         )
     if model_name is None or model_name not in definitions:
         raise KeyError(name)
-    selected: dict[str, Any] = {}
-    pending = [model_name]
-    while pending:
-        current = pending.pop()
-        if current in selected:
-            continue
-        definition = definitions[current]
-        selected[current] = copy.deepcopy(definition)
-        pending.extend(sorted(_references(definition) - selected.keys()))
+    selected = {model_name: copy.deepcopy(definitions[model_name])}
+    referenced = sorted(_references(definitions[model_name]))
+    if include_dependencies:
+        pending = list(referenced)
+        while pending:
+            current = pending.pop()
+            if current in selected:
+                continue
+            definition = definitions[current]
+            selected[current] = copy.deepcopy(definition)
+            pending.extend(sorted(_references(definition) - selected.keys()))
     return {
         "$schema": schema.get(
             "$schema", "https://json-schema.org/draft/2020-12/schema"
@@ -108,6 +110,8 @@ def schema_fragment(name: str) -> dict[str, Any]:
         "title": f"Hakowan {normalized} schema fragment",
         "$ref": f"#/$defs/{model_name}",
         "$defs": selected,
+        "referenced_definitions": referenced,
+        "self_contained": include_dependencies,
     }
 
 
@@ -156,8 +160,6 @@ def spec_template(
                 "reflectance": {
                     "kind": "scalar_field",
                     "data": {"name": attribute},
-                    "colormap": "viridis",
-                    "legend": True,
                 },
             }
         }

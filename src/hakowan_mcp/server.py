@@ -8,14 +8,13 @@ from typing import Any
 
 from .service import HakowanMCPService
 
-_SERVER_INSTRUCTIONS = """Hakowan authors deterministic 3D data visualizations.
-Always inspect source data before writing a spec; never invent attributes. Use
-canonical FigureSpec JSON, validate strictly, repair with minimal JSON Pointer
-patches, and fit geometry-dependent cameras with fit_camera. Render or observe
-before completion. Use evaluate_visual_patch for bounded visual repairs and keep
-only accepted candidates. All file paths are restricted to the configured
-workspace root. Arbitrary Python functions are not accepted through this server;
-use safe expression specs instead.
+_SERVER_INSTRUCTIONS = """Hakowan authors deterministic 3D visualizations.
+Inspect data first and never invent attributes. Start from get_spec_template;
+request a compact schema fragment only when a field is unclear, and request the
+full schema only as a last resort. Validate strictly, chain subsequent calls by
+spec_id, and repair with minimal JSON Pointer patches. Render before completion;
+observe only when visual evidence is needed. Paths stay inside the workspace.
+Arbitrary Python functions are not accepted; use safe expression specs.
 """
 
 
@@ -57,9 +56,11 @@ def create_server(
     )
 
     @mcp.tool(name="get_schema", annotations=read_only)
-    def get_schema(fragment: str | None = None) -> dict[str, Any]:
-        """Return the full FigureSpec schema or a focused fragment."""
-        return service.get_schema(fragment)
+    def get_schema(
+        fragment: str | None = None, include_dependencies: bool = False
+    ) -> dict[str, Any]:
+        """Return compact guidance; use fragment='full' only as a last resort."""
+        return service.get_schema(fragment, include_dependencies)
 
     @mcp.tool(name="get_spec_template", annotations=read_only)
     def get_spec_template(
@@ -102,10 +103,16 @@ def create_server(
         strict: bool = True,
         data_bindings: dict[str, str] | None = None,
         compile_check: bool = True,
+        include_spec: bool = False,
     ) -> dict[str, Any]:
-        """Validate FigureSpec schema, resources, semantics, backend, and compile."""
+        """Validate and return a spec_id; include canonical JSON only on request."""
         return service.validate_spec(
-            spec, backend, strict, data_bindings, compile_check
+            spec,
+            backend=backend,
+            strict=strict,
+            data_bindings=data_bindings,
+            compile_check=compile_check,
+            include_spec=include_spec,
         )
 
     @mcp.tool(name="fit_camera", annotations=read_only)
@@ -120,19 +127,21 @@ def create_server(
         fov: float = 35.0,
         fov_axis: str = "smaller",
         up_axis: str = "y",
+        include_spec: bool = False,
     ) -> dict[str, Any]:
         """Fit and validate a concrete camera, returning a minimal spec patch."""
         return service.fit_camera(
             spec,
-            data_bindings,
-            backend,
-            direction,
-            projection,
-            margin,
-            resolution,
-            fov,
-            fov_axis,
-            up_axis,
+            data_bindings=data_bindings,
+            backend=backend,
+            direction=direction,
+            projection=projection,
+            margin=margin,
+            resolution=resolution,
+            fov=fov,
+            fov_axis=fov_axis,
+            up_axis=up_axis,
+            include_spec=include_spec,
         )
 
     @mcp.tool(name="compile_spec", annotations=read_only)
@@ -166,8 +175,9 @@ def create_server(
         data_bindings: dict[str, str] | None = None,
         strict: bool = True,
         visual_criteria: dict[str, float] | None = None,
+        include_manifest: bool = False,
     ) -> dict[str, Any]:
-        """Capture multi-view WebGL evidence and structured visibility metadata."""
+        """Capture compact evidence; include the full manifest only on request."""
         return service.observe_spec(
             spec,
             output_dir,
@@ -177,6 +187,7 @@ def create_server(
             data_bindings=data_bindings,
             strict=strict,
             visual_criteria=visual_criteria,
+            include_manifest=include_manifest,
         )
 
     @mcp.tool(name="evaluate_visual_patch", annotations=writes_files)
@@ -210,16 +221,25 @@ def create_server(
         data_bindings: dict[str, str] | None = None,
         strict: bool = True,
         semantic: bool = True,
+        include_spec: bool = False,
     ) -> dict[str, Any]:
-        """Apply atomic JSON Pointer patches and optionally validate semantics."""
+        """Apply patches and return a spec_id; include JSON only on request."""
         return service.apply_patch(
-            spec, operations, backend, data_bindings, strict, semantic
+            spec,
+            operations,
+            backend=backend,
+            data_bindings=data_bindings,
+            strict=strict,
+            semantic=semantic,
+            include_spec=include_spec,
         )
 
     @mcp.resource("hakowan://schema", name="Hakowan FigureSpec schema")
     def schema_resource() -> str:
         """Return the canonical JSON Schema as formatted JSON text."""
-        return json.dumps(service.get_schema()["schema"], indent=2, sort_keys=True)
+        return json.dumps(
+            service.get_schema("full")["schema"], indent=2, sort_keys=True
+        )
 
     @mcp.resource("hakowan://agent-instructions", name="Hakowan agent workflow")
     def instructions_resource() -> str:

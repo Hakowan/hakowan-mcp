@@ -70,8 +70,8 @@ the command as a project MCP server and set the project directory as `--root`.
 
 | Tool | Purpose |
 |---|---|
-| `get_schema` | Return the canonical `FigureSpec` JSON Schema. |
-| `get_spec_template` | List or return minimal validated FigureSpec templates. |
+| `get_schema` | Return a compact schema catalog by default, or an explicit fragment/full schema. |
+| `get_spec_template` | List or return minimal validated FigureSpec templates; prefer this before schema retrieval. |
 | `get_spec` | Resolve a session-local content-addressed specification handle. |
 | `inspect_data` | Inspect geometry, topology, attributes, ranges, and non-finite values. |
 | `search_gallery` | Optionally retrieve feature-matched canonical gallery recipes. |
@@ -95,22 +95,27 @@ The server also exposes:
 ```text
 inspect_data
     ↓
-get_schema + search_gallery when available
+get_spec_template for the closest intent
+    ↓
+get_schema(fragment=...) only when a field remains unclear
     ↓
 author canonical FigureSpec JSON
     ↓
-validate_spec(strict=true)
+validate_spec(strict=true) → retain spec_id
     ↓
-apply_patch for schema or semantic repairs
+apply_patch(spec_id, ...) for repairs → retain the new spec_id
     ↓
-fit_camera when framing matters
+fit_camera(spec_id, ...) when framing matters
     ↓
-render_spec
+render_spec(spec_id, ...)
     ↓
-observe_spec when visual evidence matters
+observe_spec(spec_id, ...) only when visual evidence matters
     ↓
 evaluate_visual_patch for bounded visual repairs
 ```
+
+This order keeps normal tasks on compact templates and content-addressed handles.
+Do not request the complete schema for a routine visualization.
 
 The agent should never invent attributes. Schema failures include stable codes,
 JSON Pointer paths, and safe removal patches when unambiguous. `apply_patch`
@@ -122,12 +127,12 @@ paths, messages, and hints.
 
 `observe_spec` uses a declared Figure camera by default. If the specification
 has no camera, it captures the front, right, top, and isometric presets. Its
-response includes compact `evidence` and `visual_diagnostics` alongside the full
-manifest. Evidence covers occupancy, projected and visible bounds, vertex
-clipping, per-layer screen and element visibility, estimated occlusion, depth
-order, visible attribute ranges, legend presence, and foreground/background
-luminance contrast. Saved PNG and NPY artifacts include MIME types, dimensions,
-SHA-256 digests, and workspace-relative paths.
+default response contains compact `evidence`, `visual_diagnostics`, and a
+workspace-relative `manifest_path`. Set `include_manifest=true` only when the
+complete artifact manifest must be returned inline; it is always written to the
+output directory. Evidence covers occupancy, projected and visible bounds,
+vertex clipping, per-layer screen and element visibility, estimated occlusion,
+depth order, visible attribute ranges, legend presence, and contrast.
 
 `visual_criteria` may override `min_occupancy`, `max_occupancy`,
 `max_clipped_fraction`, and `min_contrast`. Defaults are 0.02, 0.95, 0.05, and
@@ -158,30 +163,30 @@ lighting, environment, and semantic output settings. `Config` is invocation
 policy for a concrete render. Passing an explicit `Config` replaces the complete
 Figure-derived renderer configuration rather than partially merging with it.
 
-## Specification handles
+## Specification handles and compact responses
 
 Successful validation returns a session-local, content-addressed `spec_id` such
-as `sha256:...`. The `spec` argument accepted by validate, patch, camera,
-compile, render, observe, and visual-patch tools may be either full FigureSpec
-JSON or a `spec_id`. `get_spec` resolves a handle back to canonical JSON.
+as `sha256:...`. The `spec` argument accepted by validation, patch, camera,
+compile, render, observation, and visual-patch tools may be either full JSON or
+a `spec_id`. Chain calls with the handle rather than resending canonical JSON.
 
-Handles are deduplicated by canonical content and retained in a bounded
-least-recently-used store of 128 specifications. They are intentionally not
-persisted across MCP server restarts. Use full JSON when crossing server
-sessions.
+`validate_spec`, `fit_camera`, and `apply_patch` omit full canonical JSON by
+default. Set `include_spec=true` only when a caller genuinely needs it inline;
+`get_spec(spec_id)` remains available explicitly. Handles are deduplicated by
+canonical content and retained in a 128-entry session-local LRU store.
 
 ## Focused schemas and templates
 
-Call `get_schema()` without arguments for the complete schema, or pass a
-fragment such as `transform.clip`, `texture.scalar_field`,
-`channel.vector_field`, or `scene.camera.orthographic`. Fragment responses
-contain the selected definition and all referenced definitions, but omit
-unrelated schema branches.
+Call `get_schema()` without arguments for a compact catalog. Pass a fragment
+such as `transform.clip`, `texture.scalar_field`, `channel.vector_field`, or
+`scene.camera.orthographic` for one definition. Compact fragments list unresolved
+definition names instead of embedding them; set `include_dependencies=true`
+only when a self-contained JSON Schema fragment is required. Use
+`get_schema(fragment="full")` or the `hakowan://schema` resource only as a last
+resort.
 
-`get_spec_template()` lists minimal templates. Supplying a template name returns
-validated canonical JSON with optional fields omitted. Available patterns cover
-surface and point fields, vector glyphs, wireframe overlays, clipping planes,
-and side-by-side layouts.
+`get_spec_template()` lists minimal canonical patterns for surface and point
+fields, vector glyphs, wireframe overlays, clipping planes, and layouts.
 
 ## Data references
 

@@ -196,19 +196,33 @@ class HakowanMCPService:
             },
         }
 
-    def get_schema(self, fragment: str | None = None) -> dict[str, Any]:
-        """Return the full FigureSpec schema or one self-contained fragment."""
+    def get_schema(
+        self,
+        fragment: str | None = None,
+        include_dependencies: bool = False,
+    ) -> dict[str, Any]:
+        """Return a compact catalog, focused fragment, or explicit full schema."""
+        schema = json_schema()
         if fragment is None:
             return {
                 "ok": True,
-                "schema": json_schema(),
+                "schema_id": schema["$id"],
+                "schema_version": schema["properties"]["version"]["default"],
+                "root_model": "FigureSpec",
                 "available_fragments": list(fragment_names()),
+                "available_templates": template_catalog(),
+                "conventions": schema["x-hakowan-conventions"],
+                "full_schema_resource": "hakowan://schema",
             }
+        if fragment.strip().lower() == "full":
+            return {"ok": True, "fragment": "full", "schema": schema}
         try:
             return {
                 "ok": True,
                 "fragment": fragment,
-                "schema": schema_fragment(fragment),
+                "schema": schema_fragment(
+                    fragment, include_dependencies=include_dependencies
+                ),
             }
         except KeyError as exc:
             return self._error(
@@ -343,6 +357,7 @@ class HakowanMCPService:
         strict: bool = True,
         data_bindings: dict[str, str] | None = None,
         compile_check: bool = True,
+        include_spec: bool = False,
     ) -> dict[str, Any]:
         """Validate schema, resources, semantics, backend support, and compilation."""
         try:
@@ -353,13 +368,14 @@ class HakowanMCPService:
                 strict=strict,
                 compile_check=compile_check,
             )
-            spec_id = self._store_spec(parsed)
-            return {
+            result: dict[str, Any] = {
                 "ok": True,
-                "spec_id": spec_id,
-                "spec": parsed.to_dict(),
+                "spec_id": self._store_spec(parsed),
                 "validation": report.to_dict(),
             }
+            if include_spec:
+                result["spec"] = parsed.to_dict()
+            return result
         except PydanticValidationError as exc:
             return self._schema_error(exc, spec if isinstance(spec, dict) else {})
         except Exception as exc:
@@ -419,6 +435,7 @@ class HakowanMCPService:
         fov: float = 35.0,
         fov_axis: str = "smaller",
         up_axis: str = "y",
+        include_spec: bool = False,
     ) -> dict[str, Any]:
         """Fit a concrete camera to resolved scene geometry and return its patch."""
         try:
@@ -480,14 +497,16 @@ class HakowanMCPService:
                 strict=True,
                 compile_check=True,
             )
-            return {
+            result: dict[str, Any] = {
                 "ok": report.valid,
                 "spec_id": self._store_spec(patched),
                 "camera": canonical_camera,
                 "patch": operations,
-                "spec": canonical,
                 "validation": report.to_dict(),
             }
+            if include_spec:
+                result["spec"] = canonical
+            return result
         except Exception as exc:
             return self._error("camera.fit_failed", exc)
 
@@ -618,6 +637,7 @@ class HakowanMCPService:
         data_bindings: dict[str, str] | None = None,
         strict: bool = True,
         visual_criteria: dict[str, float] | None = None,
+        include_manifest: bool = False,
     ) -> dict[str, Any]:
         """Capture WebGL evidence, artifact metadata, and visual diagnostics."""
         try:
@@ -655,15 +675,22 @@ class HakowanMCPService:
                     encoding="utf-8",
                 )
             manifest = self._client_observation_manifest(observation.manifest)
-            return {
+            (directory / "manifest.json").write_text(
+                json.dumps(manifest, indent=2, sort_keys=True) + "\n",
+                encoding="utf-8",
+            )
+            result: dict[str, Any] = {
                 "ok": True,
                 "spec_id": self._store_spec(parsed),
                 "validation": report.to_dict(),
                 "output_dir": self.paths.display(directory),
+                "manifest_path": self.paths.display(directory / "manifest.json"),
                 "evidence": manifest["evidence"],
                 "visual_diagnostics": manifest["visual_diagnostics"],
-                "manifest": manifest,
             }
+            if include_manifest:
+                result["manifest"] = manifest
+            return result
         except Exception as exc:
             return self._error("observe.failed", exc, output_dir=output_dir)
 
@@ -698,6 +725,7 @@ class HakowanMCPService:
                 resolution=resolution,
                 data_bindings=data_bindings,
                 visual_criteria=criteria,
+                include_manifest=True,
             )
             if not before["ok"]:
                 return self._error(
@@ -711,6 +739,7 @@ class HakowanMCPService:
                 data_bindings=data_bindings,
                 strict=True,
                 semantic=True,
+                include_spec=True,
             )
             if not patched["ok"]:
                 return {
@@ -731,6 +760,7 @@ class HakowanMCPService:
                 resolution=resolution,
                 data_bindings=data_bindings,
                 visual_criteria=criteria,
+                include_manifest=True,
             )
             if not after["ok"]:
                 return {
@@ -799,6 +829,7 @@ class HakowanMCPService:
         data_bindings: dict[str, str] | None = None,
         strict: bool = True,
         semantic: bool = True,
+        include_spec: bool = False,
     ) -> dict[str, Any]:
         """Atomically patch raw JSON, then validate its schema and semantics."""
         try:
@@ -810,8 +841,9 @@ class HakowanMCPService:
             result: dict[str, Any] = {
                 "ok": True,
                 "spec_id": self._store_spec(patched),
-                "spec": patched.to_dict(),
             }
+            if include_spec:
+                result["spec"] = patched.to_dict()
             if semantic:
                 runtime = from_spec(
                     patched,
