@@ -15,7 +15,7 @@ import urllib.request
 from dataclasses import asdict, dataclass
 from threading import RLock
 from pathlib import Path
-from typing import Any, TypeAlias, cast
+from typing import Any, Literal, TypeAlias, cast
 
 from pydantic import ValidationError as PydanticValidationError
 
@@ -237,6 +237,7 @@ class HakowanMCPService:
         name: str | None = None,
         data_id: str = "data",
         attribute: str = "value",
+        label_value: int | float = 1,
     ) -> dict[str, Any]:
         """List or return minimal canonical FigureSpec templates."""
         if name is None:
@@ -245,7 +246,12 @@ class HakowanMCPService:
             return {
                 "ok": True,
                 "name": name,
-                "spec": spec_template(name, data_id=data_id, attribute=attribute),
+                "spec": spec_template(
+                    name,
+                    data_id=data_id,
+                    attribute=attribute,
+                    label_value=label_value,
+                ),
             }
         except KeyError as exc:
             return self._error(
@@ -429,7 +435,7 @@ class HakowanMCPService:
         data_bindings: dict[str, str] | None = None,
         backend: str = "webgl",
         direction: str | list[float] = "isometric",
-        projection: str = "perspective",
+        projection: Literal["perspective", "orthographic", "thin_lens"] = "perspective",
         margin: float = 0.08,
         resolution: list[int] | None = None,
         fov: float = 35.0,
@@ -501,6 +507,14 @@ class HakowanMCPService:
                 "ok": report.valid,
                 "spec_id": self._store_spec(patched),
                 "camera": canonical_camera,
+                "projection_requested": projection,
+                "projection_resolved": canonical_camera["kind"],
+                "preserved_fields": [
+                    "root",
+                    "scene.lights",
+                    "scene.environment",
+                    "scene.output",
+                ],
                 "patch": operations,
                 "validation": report.to_dict(),
             }

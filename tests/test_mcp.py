@@ -86,13 +86,21 @@ def test_spec_templates_are_minimal_and_schema_valid(tmp_path):
 
     catalog = service.get_spec_template()
     names = {item["name"] for item in catalog["templates"]}
-    assert {"surface-scalar", "vector-glyphs", "wireframe-overlay"} <= names
+    assert {
+        "surface-scalar",
+        "vector-glyphs",
+        "wireframe-overlay",
+        "isolate-label",
+        "named-overlay",
+        "backend-passes",
+    } <= names
     for name in names:
         result = service.get_spec_template(
             name, data_id="input", attribute="temperature"
         )
         assert result["ok"]
-        assert "scene" not in result["spec"]
+        if name != "backend-passes":
+            assert "scene" not in result["spec"]
         assert "roi_box" not in json.dumps(result["spec"])
         hkw.FigureSpec.model_validate(result["spec"])
         if name in {"surface-scalar", "point-scalar"}:
@@ -100,6 +108,19 @@ def test_spec_templates_are_minimal_and_schema_valid(tmp_path):
                 "reflectance"
             ]
             assert set(reflectance) == {"kind", "data"}
+    isolated = service.get_spec_template(
+        "isolate-label", attribute="region", label_value=1
+    )["spec"]
+    assert isolated["root"]["spec"]["transforms"][0]["condition"]["source"] == (
+        "value == 1"
+    )
+    overlay = service.get_spec_template("named-overlay")["spec"]
+    assert [child["spec"]["name"] for child in overlay["root"]["children"]] == [
+        "front",
+        "back",
+    ]
+    passes = service.get_spec_template("backend-passes")["spec"]
+    assert passes["scene"]["output"]["passes"] == ["beauty", "depth"]
 
 
 def test_spec_handles_chain_without_resending_json(tmp_path):
@@ -181,6 +202,9 @@ def test_fit_camera_returns_valid_minimal_patch(tmp_path):
         projection="orthographic",
         resolution=[640, 480],
     )
+    assert result["projection_requested"] == "orthographic"
+    assert result["projection_resolved"] == "orthographic"
+    assert "scene.output" in result["preserved_fields"]
 
     assert result["ok"]
     assert result["camera"]["kind"] == "orthographic"

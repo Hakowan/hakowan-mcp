@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from .service import HakowanMCPService
 
@@ -67,9 +67,10 @@ def create_server(
         name: str | None = None,
         data_id: str = "data",
         attribute: str = "value",
+        label_value: int | float = 1,
     ) -> dict[str, Any]:
         """List or return minimal canonical FigureSpec templates."""
-        return service.get_spec_template(name, data_id, attribute)
+        return service.get_spec_template(name, data_id, attribute, label_value)
 
     @mcp.tool(name="get_spec", annotations=read_only)
     def get_spec(spec_id: str) -> dict[str, Any]:
@@ -121,7 +122,7 @@ def create_server(
         data_bindings: dict[str, str] | None = None,
         backend: str = "webgl",
         direction: str | list[float] = "isometric",
-        projection: str = "perspective",
+        projection: Literal["perspective", "orthographic", "thin_lens"] = "perspective",
         margin: float = 0.08,
         resolution: list[int] | None = None,
         fov: float = 35.0,
@@ -129,7 +130,7 @@ def create_server(
         up_axis: str = "y",
         include_spec: bool = False,
     ) -> dict[str, Any]:
-        """Fit and validate a concrete camera, returning a minimal spec patch."""
+        """Fit only scene.camera while preserving explicit projection and output intent."""
         return service.fit_camera(
             spec,
             data_bindings=data_bindings,

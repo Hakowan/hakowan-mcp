@@ -9,6 +9,7 @@ import hakowan as hkw
 from hakowan_mcp.eval.datasets import dataset, names
 from hakowan_mcp.eval.mcp_harness import (
     final_assistant_text,
+    final_spec_from_events,
     parse_event_stream,
     parse_response_envelope,
     run_host,
@@ -170,6 +171,7 @@ def test_strict_harness_parses_envelopes_and_event_diagnostics(tmp_path):
         'Result:\n```json\n{"kind":"spec","value":{"root":{}}}\n```'
     )
     unusable = parse_response_envelope("not JSON")
+    handle = parse_response_envelope('{"kind":"spec_id","value":"sha256:abc"}')
     events = parse_event_stream(
         "progress\n"
         '{"type":"tool_execution_start","toolName":"mcp__hakowan_get_schema"}\n'
@@ -177,6 +179,8 @@ def test_strict_harness_parses_envelopes_and_event_diagnostics(tmp_path):
         '{"type":"tool_execution_start","toolName":"bash"}\n'
         '{"type":"auto_retry_end","attempt":2}\n'
         '{"type":"message_end","message":{"role":"assistant","content":[],"usage":{"input":10,"output":2,"premiumRequests":1,"cost":{"total":0.25}}}}\n'
+        '{"type":"tool_execution_start","toolCallId":"spec","toolName":"write","args":{"path":"xd://mcp__hakowan_get_spec","content":"{}"}}\n'
+        '{"type":"tool_execution_end","toolCallId":"spec","result":{"content":[{"type":"text","text":"{\\"ok\\":true,\\"spec\\":{\\"version\\":\\"1.0\\",\\"root\\":{}}}"}]}}\n'
         '{"type":"message_end","message":{"role":"assistant","content":[{"type":"text","text":"done"}]}}\n'
     )
     summary = summarize_events(events)
@@ -184,13 +188,16 @@ def test_strict_harness_parses_envelopes_and_event_diagnostics(tmp_path):
     assert direct.status == "direct_json"
     assert fenced.status == "normalized_envelope"
     assert unusable.status == "unusable"
+    assert handle.status == "direct_json"
+    assert handle.response == {"kind": "spec_id", "value": "sha256:abc"}
     assert final_assistant_text(events) == "done"
-    assert summary["tool_count"] == 3
+    assert summary["tool_count"] == 4
     assert "mcp__hakowan_get_backends" in summary["tools"]
     assert summary["non_mcp_tools"] == ["bash"]
     assert summary["provider_auto_retry_attempts"] == 2
     assert summary["usage"]["premium_requests"] == 1
 
+    assert final_spec_from_events(events) == {"version": "1.0", "root": {}}
     bounded = run_host(
         [
             sys.executable,

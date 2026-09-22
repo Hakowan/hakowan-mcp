@@ -24,12 +24,9 @@ from .runner import load_cases
 
 EnvelopeStatus = Literal["direct_json", "normalized_envelope", "unusable"]
 _REQUIRED_TOOLS = {
-    "mcp__hakowan_get_backends",
-    "mcp__hakowan_get_schema",
     "mcp__hakowan_get_spec",
     "mcp__hakowan_get_spec_template",
     "mcp__hakowan_inspect_data",
-    "mcp__hakowan_search_gallery",
     "mcp__hakowan_validate_spec",
 }
 
@@ -56,10 +53,15 @@ class HostRun:
 
 
 def _response_object(value: Any) -> dict[str, Any] | None:
+    """Normalize a complete spec or spec-handle response envelope."""
     if not isinstance(value, dict):
         return None
     if "kind" in value and "value" in value:
-        return value
+        if value["kind"] == "spec_id" and isinstance(value["value"], str):
+            return value
+        if value["kind"] == "spec" and isinstance(value["value"], dict):
+            return value
+        return None
     if "root" in value:
         return {"kind": "spec", "value": value}
     return None
@@ -151,6 +153,35 @@ def _tool_identity(event: dict[str, Any]) -> str:
     return name
 
 
+def final_spec_from_events(events: tuple[dict[str, Any], ...]) -> dict[str, Any] | None:
+    """Recover the last canonical spec returned by get_spec."""
+    calls: dict[str, str] = {}
+    result: dict[str, Any] | None = None
+    for event in events:
+        if event.get("type") == "tool_execution_start":
+            calls[str(event.get("toolCallId", ""))] = _tool_identity(event)
+            continue
+        if event.get("type") != "tool_execution_end":
+            continue
+        if calls.get(str(event.get("toolCallId", ""))) != "mcp__hakowan_get_spec":
+            continue
+        content = event.get("result", {}).get("content", [])
+        if not isinstance(content, list):
+            continue
+        text = "".join(
+            item.get("text", "")
+            for item in content
+            if isinstance(item, dict) and item.get("type") == "text"
+        )
+        try:
+            payload = json.loads(text)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(payload, dict) and isinstance(payload.get("spec"), dict):
+            result = payload["spec"]
+    return result
+
+
 def summarize_events(events: tuple[dict[str, Any], ...]) -> dict[str, Any]:
     """Summarize tool usage, provider retries, and token/cost telemetry."""
     tools = [
@@ -206,15 +237,15 @@ Request: {case["prompt"]}
 
 Required procedure:
 1. Call inspect_data on the source. Never invent attributes.
-2. Use get_spec_template and focused get_schema fragments. Call get_backends and search_gallery.
+2. Start from get_spec_template. Call a focused get_schema fragment only when a field is unclear.
 3. Author one complete canonical FigureSpec whose geometry source is exactly {{"kind":"external","id":"data"}}.
 4. Call validate_spec with backend="webgl", strict=true, compile_check=true, and data_bindings={{"data":"{source}"}}. Continue with the returned spec_id.
 5. Repair failures with minimal apply_patch operations against the spec_id, at most twice.
-6. When framing matters, call fit_camera and use its returned spec_id.
-7. Call get_spec once at the end and return that exact canonical specification.
+6. Preserve explicit requested attributes, output passes, and camera projection exactly. When framing matters, call fit_camera once with the requested projection.
+7. Call get_spec once at the end, but return only its spec_id.
 
 Return only one JSON object, without Markdown or prose:
-{{"kind":"spec","value":<FigureSpec>,"metadata":{{"notes":"brief facts"}}}}'''
+{{"kind":"spec_id","value":"sha256:...","metadata":{{"notes":"brief facts"}}}}'''
 
 
 def prepare_workspace(path: Path, *, gallery: Path | None, repository: Path) -> None:
@@ -359,6 +390,8 @@ def run_benchmark(args: argparse.Namespace) -> dict[str, Any]:
                 args.omp_command,
                 "--model",
                 args.model,
+                "--tools",
+                "write",
                 "--thinking",
                 args.thinking,
                 "--no-lsp",
@@ -440,6 +473,25 @@ def run_benchmark(args: argparse.Namespace) -> dict[str, Any]:
                     }
                 )
             response = envelope.response
+            if response is not None and response.get("kind") == "spec_id":
+                resolved = final_spec_from_events(events)
+                if resolved is None:
+                    diagnostics.append(
+                        {
+                            "code": "harness.spec_handle_unresolved",
+                            "message": "Final spec_id had no matching get_spec result.",
+                        }
+                    )
+                else:
+                    response = {
+                        "kind": "spec",
+                        "value": resolved,
+                        "metadata": {
+                            **response.get("metadata", {}),
+                            "model_response_kind": "spec_id",
+                            "spec_id": response["value"],
+                        },
+                    }
             if response is None or diagnostics:
                 response = {"kind": "spec", "value": {}}
             metadata = response.get("metadata", {})

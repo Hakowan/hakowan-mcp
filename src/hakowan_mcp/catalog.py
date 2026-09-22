@@ -57,6 +57,9 @@ _TEMPLATE_DESCRIPTIONS = {
     "wireframe-overlay": "Surface with black boundary curves overlaid.",
     "clip-plane": "Surface clipped to one plane half-space.",
     "side-by-side": "Two copies of a source arranged along the x axis.",
+    "isolate-label": "Keep facets whose existing scalar label equals one value.",
+    "named-overlay": "Two named, independently inspectable surface layers.",
+    "backend-passes": "Surface configured for WebGL beauty and depth output.",
 }
 
 
@@ -131,7 +134,11 @@ def _layer(data_id: str, *, mark: str) -> dict[str, Any]:
 
 
 def spec_template(
-    name: str, *, data_id: str = "data", attribute: str = "value"
+    name: str,
+    *,
+    data_id: str = "data",
+    attribute: str = "value",
+    label_value: int | float = 1,
 ) -> dict[str, Any]:
     """Return a minimal validated FigureSpec template with optional fields omitted."""
     if not data_id:
@@ -148,6 +155,8 @@ def spec_template(
         and not attribute
     ):
         raise ValueError(f"attribute must not be empty for template {normalized!r}")
+    if not isinstance(label_value, (int, float)):
+        raise ValueError("label_value must be numeric")
     root: dict[str, Any]
     if normalized == "surface":
         root = _layer(data_id, mark="surface")
@@ -212,6 +221,34 @@ def spec_template(
                 _layer(data_id, mark="surface"),
             ],
         }
+    elif normalized == "isolate-label":
+        root = _layer(data_id, mark="surface")
+        root["spec"]["transforms"] = [
+            {
+                "kind": "filter",
+                "data": {"name": attribute},
+                "condition": {
+                    "kind": "expression",
+                    "source": f"value == {label_value!r}",
+                },
+            }
+        ]
+    elif normalized == "named-overlay":
+        front = _layer(data_id, mark="surface")
+        back = _layer(data_id, mark="surface")
+        front["spec"]["name"] = "front"
+        back["spec"]["name"] = "back"
+        root = {"kind": "overlay", "children": [front, back]}
+    elif normalized == "backend-passes":
+        root = _layer(data_id, mark="surface")
+        result = {
+            "$schema": SCHEMA_URL,
+            "version": SCHEMA_VERSION,
+            "root": root,
+            "scene": {"output": {"passes": ["beauty", "depth"]}},
+        }
+        FigureSpec.model_validate(result)
+        return result
     else:
         raise KeyError(name)
     result = {"$schema": SCHEMA_URL, "version": SCHEMA_VERSION, "root": root}
