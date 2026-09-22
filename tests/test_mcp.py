@@ -171,7 +171,8 @@ def test_fit_camera_returns_valid_minimal_patch(tmp_path):
     assert result["camera"]["kind"] == "orthographic"
     assert result["camera"]["scale"] > 0
     assert result["patch"] == [
-        {"op": "replace", "path": "/scene", "value": {"camera": result["camera"]}}
+        {"op": "replace", "path": "/version", "value": "1.1"},
+        {"op": "replace", "path": "/scene", "value": {"camera": result["camera"]}},
     ]
     assert result["validation"]["valid"]
 

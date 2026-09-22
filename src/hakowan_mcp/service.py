@@ -23,11 +23,11 @@ from hakowan.backends import BackendName, list_backend_capabilities
 from hakowan.compiler import compile as compile_layer
 from hakowan.grammar.figure import Figure, OrthographicCamera, ThinLensCamera
 from hakowan.grammar.layer import Layer
-from hakowan.inspection import inspect as inspect_data_source
-from hakowan.observation import observe
+from hakowan.workflow.inspection import inspect as inspect_data_source
+from hakowan.workflow.observation import observe
 from hakowan.render import render
 from hakowan.spec import FigureSpec, PatchError, from_spec, json_schema, patch_spec
-from hakowan.validation import validate
+from hakowan.workflow.validation import validate
 
 from .catalog import fragment_names, schema_fragment, spec_template, template_catalog
 
@@ -448,29 +448,29 @@ class HakowanMCPService:
                 else "perspective"
             )
             payload = parsed.to_dict()
-            operations: list[dict[str, Any]] = (
-                [
-                    {
-                        "op": "replace",
-                        "path": "/scene",
-                        "value": {"camera": camera_value},
-                    }
-                ]
+            camera_operation = (
+                {
+                    "op": "replace",
+                    "path": "/scene",
+                    "value": {"camera": camera_value},
+                }
                 if payload["scene"] is None
-                else [
-                    {
-                        "op": "replace",
-                        "path": "/scene/camera",
-                        "value": camera_value,
-                    }
-                ]
+                else {
+                    "op": "replace",
+                    "path": "/scene/camera",
+                    "value": camera_value,
+                }
             )
+            operations: list[dict[str, Any]] = []
+            if parsed.version == "1.0":
+                operations.append({"op": "replace", "path": "/version", "value": "1.1"})
+            operations.append(camera_operation)
             patched = patch_spec(parsed, operations)
             canonical = patched.to_dict()
             canonical_camera = canonical["scene"]["camera"]
-            operations[0]["value"] = (
+            camera_operation["value"] = (
                 {"camera": canonical_camera}
-                if operations[0]["path"] == "/scene"
+                if camera_operation["path"] == "/scene"
                 else canonical_camera
             )
             _, patched_runtime = self._runtime(canonical, data_bindings)
