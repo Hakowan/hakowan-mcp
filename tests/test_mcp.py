@@ -594,6 +594,16 @@ def test_mcp_server_lists_and_calls_structured_tools(tmp_path):
                 "fit_camera",
                 {"spec": spec_id, "direction": "front", "projection": "perspective"},
             )
+            observed = await client.call_tool(
+                "observe_spec",
+                {
+                    "spec": fitted.structured_content["spec_id"],
+                    "output_dir": "observation",
+                    "views": ["front"],
+                    "passes": ["beauty"],
+                    "resolution": [32, 32],
+                },
+            )
             assessed = await client.call_tool(
                 "evaluate_visual_patch",
                 {"spec": spec_id, "operations": [], "output_dir": "visual-assessment"},
@@ -608,6 +618,7 @@ def test_mcp_server_lists_and_calls_structured_tools(tmp_path):
                 template.structured_content,
                 fetched.structured_content,
                 fitted.structured_content,
+                observed.structured_content,
                 assessed.structured_content,
             )
 
@@ -620,6 +631,7 @@ def test_mcp_server_lists_and_calls_structured_tools(tmp_path):
         template,
         fetched,
         fitted,
+        observed,
         assessed,
     ) = asyncio.run(exercise())
 
@@ -652,6 +664,9 @@ def test_mcp_server_lists_and_calls_structured_tools(tmp_path):
     assert fetched["spec"] == spec
     assert fitted["ok"]
     assert fitted["camera"]["kind"] == "perspective"
+    assert observed["ok"]
+    assert observed["image_paths"] == ["observation/front_beauty.png"]
+    assert (tmp_path / observed["image_paths"][0]).is_file()
     assert not assessed["ok"]
     assert assessed["error"]["code"] == "visual.patch_failed"
 
@@ -663,6 +678,8 @@ def test_mcp_stdio_entrypoint(tmp_path):
         from mcp.server import MCPServer  # noqa: F401
     except ImportError:
         pytest.skip("MCP Python SDK v2 is unavailable")
+    mesh_path = _mesh(tmp_path / "mesh.ply")
+    spec = hkw.to_spec(hkw.layer(mesh_path)).to_dict()
 
     async def exercise():
         parameters = StdioServerParameters(
@@ -672,9 +689,21 @@ def test_mcp_stdio_entrypoint(tmp_path):
             env={"PYTHONPATH": str(Path(__file__).parents[1] / "src")},
         )
         async with Client(parameters) as client:
-            result = await client.call_tool("get_schema")
-            return result.structured_content
+            listed = await client.list_tools()
+            observed = await client.call_tool(
+                "observe_spec",
+                {
+                    "spec": spec,
+                    "output_dir": "stdio-observation",
+                    "views": ["front"],
+                    "passes": ["beauty"],
+                    "resolution": [32, 32],
+                },
+            )
+            return {tool.name for tool in listed.tools}, observed.structured_content
 
-    payload = asyncio.run(exercise())
+    tools, payload = asyncio.run(exercise())
+    assert "observe_spec" in tools
     assert payload["ok"]
-    assert payload["schema_id"].endswith("/schema/v1.json")
+    assert payload["image_paths"] == ["stdio-observation/front_beauty.png"]
+    assert (tmp_path / payload["image_paths"][0]).is_file()
