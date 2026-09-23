@@ -14,6 +14,7 @@ class ExpectedIntent:
     attributes: tuple[str, ...] = ()
     kinds: tuple[str, ...] = ()
     colormaps: tuple[str, ...] = ()
+    forbidden_kinds: tuple[str, ...] = ()
     camera_kind: str | None = None
     passes: tuple[str, ...] = ()
     legend: bool | None = None
@@ -29,6 +30,7 @@ class ExpectedIntent:
             attributes=tuple(value.get("attributes", ())),
             kinds=tuple(value.get("kinds", ())),
             colormaps=tuple(value.get("colormaps", ())),
+            forbidden_kinds=tuple(value.get("forbidden_kinds", ())),
             camera_kind=value.get("camera_kind"),
             passes=tuple(value.get("passes", ())),
             legend=value.get("legend"),

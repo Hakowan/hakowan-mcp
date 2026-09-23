@@ -79,6 +79,10 @@ def _intent_scores(
         "passes": _fraction(case.expected.passes, tokens["passes"]),
         "views": 1.0 if len(scene) >= case.expected.minimum_views else 0.0,
     }
+    if case.expected.forbidden_kinds:
+        checks["forbidden_kinds"] = float(
+            not (set(case.expected.forbidden_kinds) & tokens["kinds"])
+        )
     if case.expected.legend is not None:
         enabled = any(
             value is True or isinstance(value, dict) for value in tokens["legends"]
@@ -94,6 +98,9 @@ def _intent_scores(
             "actual_kinds": sorted(tokens["kinds"]),
             "actual_colormaps": sorted(tokens["colormaps"]),
             "actual_passes": sorted(tokens["passes"]),
+            "actual_forbidden_kinds": sorted(
+                set(case.expected.forbidden_kinds) & tokens["kinds"]
+            ),
             "checks": checks,
         },
     )

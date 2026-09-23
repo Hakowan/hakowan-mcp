@@ -54,7 +54,7 @@ _TEMPLATE_DESCRIPTIONS = {
     "point-scalar": "Point glyphs colored by a scalar attribute.",
     "point-vector-size": "Point glyph sizes driven by a vector magnitude.",
     "vector-glyphs": "Arrow glyphs driven by a vector attribute.",
-    "wireframe-overlay": "Surface with black boundary curves overlaid.",
+    "wireframe-overlay": "Surface with all black mesh edges overlaid.",
     "clip-plane": "Surface clipped to one plane half-space.",
     "side-by-side": "Two copies of a source arranged along the x axis.",
     "isolate-label": "Keep facets whose existing scalar label equals one value.",
@@ -205,7 +205,7 @@ def spec_template(
     elif normalized == "wireframe-overlay":
         surface = _layer(data_id, mark="surface")
         wireframe = _layer(data_id, mark="curve")
-        wireframe["spec"]["transforms"] = [{"kind": "boundary"}]
+        wireframe["spec"]["name"] = "Edges"
         wireframe["spec"]["channels"] = {
             "size": {"kind": "size", "data": 0.01},
             "material": {"kind": "diffuse", "reflectance": "black"},

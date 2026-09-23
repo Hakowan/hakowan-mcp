@@ -116,6 +116,10 @@ def test_spec_templates_are_minimal_and_schema_valid(tmp_path):
     ]
     assert categorical_field["categories"] is True
     assert categorical_field["colormap"] == "set1"
+    wireframe = service.get_spec_template("wireframe-overlay")["spec"]
+    edge_layer = wireframe["root"]["children"][1]["spec"]
+    assert edge_layer["name"] == "Edges"
+    assert edge_layer.get("transforms", []) == []
     isolated = service.get_spec_template(
         "isolate-label", attribute="region", label_value=1
     )["spec"]

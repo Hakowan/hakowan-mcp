@@ -77,6 +77,26 @@ def test_scalar_color_accepts_principled_material():
     assert result.final_pass
 
 
+def test_wireframe_case_rejects_boundary_only_curves():
+    from hakowan_mcp.eval.reference import reference_spec
+
+    case = next(case for case in load_cases() if case.id == "wireframe-overlay")
+    candidate = reference_spec(case)
+    candidate["root"]["children"][1]["spec"]["transforms"] = [
+        {"kind": "boundary", "attributes": []}
+    ]
+
+    result = evaluate_candidate(case, candidate)
+
+    assert result.schema.passed
+    assert result.semantic.passed
+    assert result.compile.passed
+    assert result.render.passed
+    assert result.grammar_score < 1.0
+    assert result.compile.details["intent"]["actual_forbidden_kinds"] == ["boundary"]
+    assert not result.final_pass
+
+
 def test_schema_failure_is_scored_without_running_later_stages():
     case = load_cases()[0]
 
