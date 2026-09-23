@@ -83,6 +83,20 @@ def _intent_scores(
         checks["forbidden_kinds"] = float(
             not (set(case.expected.forbidden_kinds) & tokens["kinds"])
         )
+    curve_sizes = [
+        float(channel.data)
+        for view in scene
+        if getattr(view, "mark", None) is not None and view.mark.name.lower() == "curve"
+        for channel in view.channels
+        if channel.__class__.__name__ == "Size"
+        and isinstance(channel.data, (int, float))
+        and not isinstance(channel.data, bool)
+    ]
+    if case.expected.curve_size_range is not None:
+        low, high = case.expected.curve_size_range
+        checks["curve_size"] = float(
+            bool(curve_sizes) and all(low <= size <= high for size in curve_sizes)
+        )
     if case.expected.legend is not None:
         enabled = any(
             value is True or isinstance(value, dict) for value in tokens["legends"]
@@ -101,6 +115,8 @@ def _intent_scores(
             "actual_forbidden_kinds": sorted(
                 set(case.expected.forbidden_kinds) & tokens["kinds"]
             ),
+            "actual_curve_sizes": curve_sizes,
+            "expected_curve_size_range": case.expected.curve_size_range,
             "checks": checks,
         },
     )

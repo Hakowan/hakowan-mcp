@@ -97,6 +97,24 @@ def test_wireframe_case_rejects_boundary_only_curves():
     assert not result.final_pass
 
 
+def test_wireframe_case_rejects_imperceptibly_thin_curves():
+    case = next(case for case in load_cases() if case.id == "wireframe-overlay")
+    mesh = dataset(case.dataset)
+    figure = hkw.figure(hkw.layer(mesh).show_edges(width=0.0001))
+    candidate = hkw.to_spec(figure, data_ids={id(mesh): "data"}).to_dict()
+
+    result = evaluate_candidate(case, candidate)
+
+    intent = result.compile.details["intent"]
+    assert result.schema.passed
+    assert result.semantic.passed
+    assert result.render.passed
+    assert intent["actual_curve_sizes"] == [0.0001]
+    assert intent["checks"]["curve_size"] == 0.0
+    assert result.grammar_score < 1.0
+    assert not result.final_pass
+
+
 def test_schema_failure_is_scored_without_running_later_stages():
     case = load_cases()[0]
 

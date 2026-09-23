@@ -19,6 +19,7 @@ class ExpectedIntent:
     passes: tuple[str, ...] = ()
     legend: bool | None = None
     minimum_views: int = 1
+    curve_size_range: tuple[float, float] | None = None
     occupancy: tuple[float, float] | None = None
     output_kind: Literal["image", "html"] | None = None
 
@@ -34,6 +35,14 @@ class ExpectedIntent:
             camera_kind=value.get("camera_kind"),
             passes=tuple(value.get("passes", ())),
             legend=value.get("legend"),
+            curve_size_range=(
+                (
+                    float(value["curve_size_range"][0]),
+                    float(value["curve_size_range"][1]),
+                )
+                if value.get("curve_size_range")
+                else None
+            ),
             minimum_views=int(value.get("minimum_views", 1)),
             occupancy=tuple(value["occupancy"]) if value.get("occupancy") else None,
             output_kind=value.get("output_kind"),

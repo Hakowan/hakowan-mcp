@@ -105,8 +105,9 @@ calls `observe_spec` for an image, `render_spec` for HTML, both, or neither.
 called output paths, and pass status. Image-only passes; HTML-only, both, and
 missing output fail this focused policy check without masking FigureSpec scores.
 
-The `wireframe-overlay` case requires a surface plus a sized curve layer over
-the original mesh and explicitly rejects the `boundary` transform. Boundary
+The `wireframe-overlay` case requires a surface plus a curve layer over the
+original mesh with a width in `[0.005, 0.05]`. It rejects thinner, effectively
+imperceptible lines and explicitly rejects the `boundary` transform. Boundary
 extracts only topological boundaries; it does not visualize every mesh edge.
 
 
