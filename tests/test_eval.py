@@ -8,6 +8,7 @@ import hakowan as hkw
 
 from hakowan_mcp.eval.datasets import dataset, names
 from hakowan_mcp.eval.mcp_harness import (
+    artifact_output_choice,
     final_assistant_text,
     final_spec_from_events,
     parse_event_stream,
@@ -28,13 +29,17 @@ from hakowan_mcp.eval.runner import (
 from hakowan_mcp.eval.scoring import evaluate_candidate, patch_minimality
 
 
-def test_bundled_suite_has_twenty_unique_cases_and_five_datasets():
+def test_bundled_suite_has_twenty_one_unique_cases_and_five_datasets():
     cases = load_cases()
 
-    assert len(cases) == 20
-    assert len({case.id for case in cases}) == 20
+    assert len(cases) == 21
+    assert len({case.id for case in cases}) == 21
     assert len(names()) == 5
     assert {case.dataset for case in cases} == set(names())
+    output_case = next(
+        case for case in cases if case.id == "default-visualization-output"
+    )
+    assert output_case.expected.output_kind == "image"
 
 
 def test_reference_suite_exercises_repairs_and_passes():
@@ -196,6 +201,23 @@ def test_strict_harness_parses_envelopes_and_event_diagnostics(tmp_path):
     assert summary["non_mcp_tools"] == ["bash"]
     assert summary["provider_auto_retry_attempts"] == 2
     assert summary["usage"]["premium_requests"] == 1
+    image_events = parse_event_stream(
+        '{"type":"tool_execution_start","toolName":"hakowan.observe_spec",'
+        '"args":{"output_dir":"model-observation","passes":["beauty"]}}\n'
+    )
+    html_events = parse_event_stream(
+        '{"type":"tool_execution_start","toolName":"write",'
+        '"args":{"path":"xd://mcp__hakowan_render_spec",'
+        '"content":"{\\"output\\":\\"model.html\\"}"}}\n'
+    )
+    assert artifact_output_choice(image_events) == {
+        "actual": "image",
+        "outputs": ["model-observation"],
+    }
+    assert artifact_output_choice(html_events) == {
+        "actual": "html",
+        "outputs": ["model.html"],
+    }
 
     assert final_spec_from_events(events) == {"version": "1.0", "root": {}}
     bounded = run_host(

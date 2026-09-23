@@ -228,9 +228,61 @@ def summarize_events(events: tuple[dict[str, Any], ...]) -> dict[str, Any]:
     }
 
 
+def artifact_output_choice(events: tuple[dict[str, Any], ...]) -> dict[str, Any]:
+    """Classify whether an agent produced image, HTML, both, or no artifact."""
+    image = False
+    html = False
+    outputs: list[str] = []
+    for event in events:
+        if event.get("type") != "tool_execution_start":
+            continue
+        tool = _tool_identity(event)
+        arguments = event.get("args")
+        if not isinstance(arguments, dict):
+            arguments = {}
+        if event.get("toolName") == "write" and isinstance(
+            arguments.get("content"), str
+        ):
+            try:
+                decoded = json.loads(arguments["content"])
+            except json.JSONDecodeError:
+                decoded = None
+            if isinstance(decoded, dict):
+                arguments = decoded
+        if tool == "mcp__hakowan_observe_spec":
+            image = True
+            outputs.append(str(arguments.get("output_dir", "<observation>")))
+        elif tool == "mcp__hakowan_render_spec":
+            output = str(arguments.get("output", ""))
+            outputs.append(output or "<render>")
+            suffix = Path(output).suffix.lower()
+            if suffix == ".html":
+                html = True
+            elif suffix in {".png", ".jpg", ".jpeg", ".webp", ".tif", ".tiff"}:
+                image = True
+    actual = (
+        "image_and_html"
+        if image and html
+        else "image"
+        if image
+        else "html"
+        if html
+        else "none"
+    )
+    return {"actual": actual, "outputs": outputs}
+
+
 def benchmark_prompt(case: dict[str, Any]) -> str:
     """Build the fixed strict-MCP prompt for one benchmark case."""
     source = f"data/{case['dataset']}.ply"
+    artifact_step = (
+        "7. Produce the requested visualization artifact with the appropriate "
+        "Hakowan MCP tool. Choose the output type from the request and server "
+        "instructions.\n"
+        if case.get("check_output_choice")
+        else ""
+    )
+    final_step = 8 if artifact_step else 7
     return f'''You are being benchmarked as a Hakowan FigureSpec author in strict MCP-only isolation. Use only Hakowan MCP tools.
 Case ID: {case["id"]}
 Source file: {source}
@@ -244,7 +296,7 @@ Required procedure:
 4. Call validate_spec with backend="webgl", strict=true, compile_check=true, and data_bindings={{"data":"{source}"}}. Continue with the returned spec_id.
 5. Repair failures with minimal apply_patch operations against the spec_id, at most twice.
 6. Preserve explicit requested attributes, output passes, and camera projection exactly. Fit a perspective camera once for comparisons, named multilayer views, and occlusion unless another projection is requested.
-7. Call get_spec once at the end, but return only its spec_id.
+{artifact_step}{final_step}. Call get_spec once at the end, but return only its spec_id.
 
 Return only one JSON object, without Markdown or prose:
 {{"kind":"spec_id","value":"sha256:...","metadata":{{"notes":"brief facts"}}}}'''
@@ -408,7 +460,12 @@ def run_benchmark(args: argparse.Namespace) -> dict[str, Any]:
                 str(args.timeout),
                 "-p",
                 benchmark_prompt(
-                    {"id": case.id, "dataset": case.dataset, "prompt": case.prompt}
+                    {
+                        "id": case.id,
+                        "dataset": case.dataset,
+                        "prompt": case.prompt,
+                        "check_output_choice": case.expected.output_kind is not None,
+                    }
                 ),
             ]
             host = run_host(
@@ -419,6 +476,13 @@ def run_benchmark(args: argparse.Namespace) -> dict[str, Any]:
             )
             events = parse_event_stream(host.stdout)
             summary = summarize_events(events)
+            artifact_output = artifact_output_choice(events)
+            artifact_output["expected"] = case.expected.output_kind
+            artifact_output["passed"] = (
+                artifact_output["actual"] == case.expected.output_kind
+                if case.expected.output_kind is not None
+                else None
+            )
             raw = final_assistant_text(events)
             envelope = parse_response_envelope(raw)
             timed_out = host.timed_out or (
@@ -514,6 +578,7 @@ def run_benchmark(args: argparse.Namespace) -> dict[str, Any]:
                     "timed_out": timed_out,
                     "duration_seconds": host.duration_seconds,
                     **summary,
+                    "artifact_output": artifact_output,
                     "harness_passed": not diagnostics,
                 }
             )
@@ -531,7 +596,7 @@ def run_benchmark(args: argparse.Namespace) -> dict[str, Any]:
             print(
                 f"[{index:02d}/{len(selected)}] {case.id}: "
                 f"format={envelope.status} tools={summary['tool_count']} "
-                f"timeout={timed_out}",
+                f"output={artifact_output['actual']} timeout={timed_out}",
                 flush=True,
             )
     return {
@@ -560,6 +625,16 @@ def run_benchmark(args: argparse.Namespace) -> dict[str, Any]:
             ),
             "response_formats": dict(sorted(formats.items())),
             "tool_calls": dict(sorted(all_tools.items())),
+            "artifact_output_cases": {
+                cid: run["artifact_output"]
+                for cid, run in sorted(runs.items())
+                if run["artifact_output"]["expected"] is not None
+            },
+            "failed_artifact_output_cases": sorted(
+                cid
+                for cid, run in runs.items()
+                if run["artifact_output"]["passed"] is False
+            ),
             "timed_out_cases": sorted(
                 cid for cid, run in runs.items() if run["timed_out"]
             ),

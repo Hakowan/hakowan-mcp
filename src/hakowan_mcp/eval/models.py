@@ -19,6 +19,7 @@ class ExpectedIntent:
     legend: bool | None = None
     minimum_views: int = 1
     occupancy: tuple[float, float] | None = None
+    output_kind: Literal["image", "html"] | None = None
 
     @classmethod
     def from_dict(cls, value: dict[str, Any]) -> "ExpectedIntent":
@@ -33,6 +34,7 @@ class ExpectedIntent:
             legend=value.get("legend"),
             minimum_views=int(value.get("minimum_views", 1)),
             occupancy=tuple(value["occupancy"]) if value.get("occupancy") else None,
+            output_kind=value.get("output_kind"),
         )
 
 

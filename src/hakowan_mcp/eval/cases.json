@@ -168,5 +168,13 @@
     "allowed_patch_prefixes": ["/scene/camera"],
     "tags": ["adversarial", "repair", "camera"],
     "expected": {"camera_kind": "perspective"}
+  },
+  {
+    "id": "default-visualization-output",
+    "dataset": "scalar_surface",
+    "prompt": "Visualize the model.",
+    "recipe": "fit_camera",
+    "tags": ["output-choice", "camera"],
+    "expected": {"marks": ["surface"], "camera_kind": "perspective", "output_kind": "image"}
   }
 ]

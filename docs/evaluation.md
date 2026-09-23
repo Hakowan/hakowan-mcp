@@ -16,7 +16,11 @@ Every candidate is scored independently for:
 8. bounded diagnostic repair
 9. repair patch minimality
 
-The bundled suite contains 20 requests over five deterministic datasets, including missing fields, non-positive log input, NaNs, constant fields, extreme aspect ratios, backend limitations, point clouds, disconnected components, comparisons, and occlusion.
+The bundled suite contains 21 requests over five deterministic datasets,
+including missing fields, non-positive log input, NaNs, constant fields,
+extreme aspect ratios, backend limitations, point clouds, disconnected
+components, comparisons, occlusion, and default artifact selection for a
+simple visualization request.
 
 ## Deterministic run
 
@@ -93,6 +97,13 @@ Output-envelope compliance is reported independently from FigureSpec behavior:
 recovered deterministically from Markdown or surrounding prose, and `unusable`
 records output with no complete response object. Normalized specifications still
 receive ordinary schema, semantic, compile, render, intent, and camera scores.
+
+The `default-visualization-output` case asks only “Visualize the model.” The
+strict MCP harness does not name an output format; it records whether the agent
+calls `observe_spec` for an image, `render_spec` for HTML, both, or neither.
+`run_metadata.artifact_output_cases` contains the expected and actual choice,
+called output paths, and pass status. Image-only passes; HTML-only, both, and
+missing output fail this focused policy check without masking FigureSpec scores.
 
 ## Generated output
 

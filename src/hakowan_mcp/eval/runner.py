@@ -23,8 +23,8 @@ from .providers import (
 )
 from .scoring import evaluate_candidate
 
-SUITE_VERSION = "1.0"
-PROMPT_VERSION = "1.0"
+SUITE_VERSION = "1.1"
+PROMPT_VERSION = "1.1"
 
 
 def load_cases(path: str | Path | None = None) -> tuple[BenchmarkCase, ...]:
