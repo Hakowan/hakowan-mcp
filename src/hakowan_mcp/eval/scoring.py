@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 import tempfile
 from pathlib import Path
 from typing import Any
@@ -134,7 +135,11 @@ def _camera_score(
     observe: bool,
 ) -> tuple[float, dict[str, Any]]:
     expected = case.expected
-    if expected.camera_kind is None and expected.occupancy is None:
+    if (
+        expected.camera_kind is None
+        and expected.camera_up_axis is None
+        and expected.occupancy is None
+    ):
         return 1.0, {}
     figure = runtime if isinstance(runtime, Figure) else None
     camera = figure.scene.camera if figure is not None else None
@@ -153,6 +158,19 @@ def _camera_score(
         details["camera_kind"] = kind
         if kind != expected.camera_kind:
             score = 0.0
+    if expected.camera_up_axis is not None:
+        axis = 1 if expected.camera_up_axis == "y" else 2
+        if camera is None:
+            alignment = None
+            score = 0.0
+        else:
+            up = tuple(float(value) for value in camera.up)
+            length = math.sqrt(sum(value * value for value in up))
+            alignment = up[axis] / length if length > 1e-12 else None
+            if alignment is None or alignment < 0.9:
+                score = 0.0
+        details["camera_up_axis"] = expected.camera_up_axis
+        details["camera_up_alignment"] = alignment
     camera_errors = [
         item for item in diagnostics if str(item.get("code", "")).startswith("camera.")
     ]

@@ -5,7 +5,7 @@
     "prompt": "Color the surface by temperature with a viridis legend and fit an isometric camera.",
     "recipe": "scalar_color",
     "tags": ["grounding", "scalar", "legend"],
-    "expected": {"marks": ["surface"], "attributes": ["temperature"], "kinds": ["scalar_field"], "colormaps": ["viridis"], "legend": true, "camera_kind": "perspective", "occupancy": [0.02, 0.95]}
+    "expected": {"marks": ["surface"], "attributes": ["temperature"], "kinds": ["scalar_field"], "colormaps": ["viridis"], "legend": true, "camera_kind": "perspective", "camera_up_axis": "y", "occupancy": [0.02, 0.95]}
   },
   {
     "id": "missing-attribute-repair",
@@ -59,7 +59,7 @@
     "prompt": "Overlay black mesh edges on the original surface.",
     "recipe": "wireframe",
     "tags": ["composition", "wireframe"],
-    "expected": {"marks": ["surface", "curve"], "kinds": ["size", "diffuse"], "forbidden_kinds": ["boundary"], "curve_size_range": [0.005, 0.05], "minimum_views": 2}
+    "expected": {"marks": ["surface", "curve"], "kinds": ["size", "diffuse"], "forbidden_kinds": ["boundary"], "curve_size_range": [0.005, 0.05], "minimum_views": 2, "camera_kind": "perspective", "camera_up_axis": "y"}
   },
   {
     "id": "velocity-glyphs",
@@ -115,7 +115,7 @@
     "prompt": "Fit the complete elongated surface in an isometric perspective view.",
     "recipe": "fit_camera",
     "tags": ["camera", "fit"],
-    "expected": {"camera_kind": "perspective", "occupancy": [0.001, 0.2]}
+    "expected": {"camera_kind": "perspective", "camera_up_axis": "y", "occupancy": [0.001, 0.2]}
   },
   {
     "id": "orthographic-section",
@@ -175,6 +175,6 @@
     "prompt": "Visualize the model.",
     "recipe": "fit_camera",
     "tags": ["output-choice", "camera"],
-    "expected": {"marks": ["surface"], "camera_kind": "perspective", "output_kind": "image"}
+    "expected": {"marks": ["surface"], "camera_kind": "perspective", "camera_up_axis": "y", "output_kind": "image"}
   }
 ]

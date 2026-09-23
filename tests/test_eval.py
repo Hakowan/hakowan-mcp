@@ -77,6 +77,26 @@ def test_scalar_color_accepts_principled_material():
     assert result.final_pass
 
 
+def test_default_visualization_rejects_rotated_world_up():
+    from hakowan_mcp.eval.reference import reference_spec
+
+    case = next(
+        case for case in load_cases() if case.id == "default-visualization-output"
+    )
+    candidate = reference_spec(case)
+    candidate["scene"]["camera"]["up"] = [0.0, 0.0, 1.0]
+
+    result = evaluate_candidate(case, candidate)
+
+    camera = result.compile.details["camera"]
+    assert result.schema.passed
+    assert result.semantic.passed
+    assert camera["camera_up_axis"] == "y"
+    assert camera["camera_up_alignment"] == 0.0
+    assert result.camera_score == 0.0
+    assert not result.final_pass
+
+
 def test_wireframe_case_rejects_boundary_only_curves():
     from hakowan_mcp.eval.reference import reference_spec
 

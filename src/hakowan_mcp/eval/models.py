@@ -16,6 +16,7 @@ class ExpectedIntent:
     colormaps: tuple[str, ...] = ()
     forbidden_kinds: tuple[str, ...] = ()
     camera_kind: str | None = None
+    camera_up_axis: Literal["y", "z"] | None = None
     passes: tuple[str, ...] = ()
     legend: bool | None = None
     minimum_views: int = 1
@@ -33,6 +34,7 @@ class ExpectedIntent:
             colormaps=tuple(value.get("colormaps", ())),
             forbidden_kinds=tuple(value.get("forbidden_kinds", ())),
             camera_kind=value.get("camera_kind"),
+            camera_up_axis=value.get("camera_up_axis"),
             passes=tuple(value.get("passes", ())),
             legend=value.get("legend"),
             curve_size_range=(

@@ -110,6 +110,11 @@ original mesh with a width in `[0.005, 0.05]`. It rejects thinner, effectively
 imperceptible lines and explicitly rejects the `boundary` transform. Boundary
 extracts only topological boundaries; it does not visualize every mesh edge.
 
+Camera-oriented cases declare their expected world-up axis. The scorer requires
+the camera's normalized `up` vector to align positively with that axis by at
+least `0.9`; sideways or inverted views fail even when framing and rendering
+otherwise succeed.
+
 
 ## Generated output
 
