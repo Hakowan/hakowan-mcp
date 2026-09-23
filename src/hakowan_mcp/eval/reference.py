@@ -26,7 +26,7 @@ def _figure(case: BenchmarkCase) -> hkw.Figure:
     elif recipe == "finite_quality":
         figure = hkw.figure(layer.color_by("signed", colormap="viridis"))
     elif recipe == "categorical_components":
-        figure = hkw.figure(layer.color_by("region", colormap="set1", categories=True))
+        figure = hkw.figure(layer.color_by("region", categories=True))
     elif recipe == "wireframe":
         figure = hkw.figure(layer.show_edges(width=0.02))
     elif recipe == "vector_glyphs":

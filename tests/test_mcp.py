@@ -115,7 +115,10 @@ def test_spec_templates_are_minimal_and_schema_valid(tmp_path):
         "reflectance"
     ]
     assert categorical_field["categories"] is True
-    assert categorical_field["colormap"] == "set1"
+    assert "colormap" not in categorical_field
+    resolved = hkw.FigureSpec.model_validate(categorical).to_dict()
+    resolved_field = resolved["root"]["spec"]["channels"]["material"]["reflectance"]
+    assert resolved_field["colormap"] == "set1"
     wireframe = service.get_spec_template("wireframe-overlay")["spec"]
     edge_layer = wireframe["root"]["children"][1]["spec"]
     assert edge_layer["name"] == "Edges"

@@ -174,9 +174,7 @@ def spec_template(
             }
         }
         if categories:
-            root["spec"]["channels"]["material"]["reflectance"].update(
-                {"colormap": "set1", "categories": True}
-            )
+            root["spec"]["channels"]["material"]["reflectance"]["categories"] = True
     elif normalized == "point-vector-size":
         root = _layer(data_id, mark="point")
         root["spec"]["channels"] = {

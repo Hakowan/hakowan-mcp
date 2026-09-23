@@ -200,7 +200,7 @@ resort.
 `get_spec_template()` lists minimal canonical patterns for surface and point
 fields, vector glyphs, wireframe overlays, label isolation, named overlays,
 backend passes, clipping planes, and layouts. Pass `categories=true` to a scalar
-template to select categorical encoding with the `set1` colormap automatically.
+template; Hakowan applies its categorical palette default automatically.
 Named multilayer and occlusion workflows should fit a perspective camera unless
 the request explicitly specifies another projection.
 
