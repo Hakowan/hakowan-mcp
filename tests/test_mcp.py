@@ -329,12 +329,12 @@ def test_missing_gallery_is_non_fatal(tmp_path):
     assert validated["ok"] and validated["validation"]["valid"]
 
 
-def test_remote_gallery_failure_is_non_fatal(tmp_path, monkeypatch):
+def test_gallery_without_local_or_remote_source_is_non_fatal(tmp_path, monkeypatch):
     monkeypatch.setattr(
         service_module.urllib.request,
         "urlopen",
         lambda *_args, **_kwargs: (_ for _ in ()).throw(
-            urllib.error.URLError("offline")
+            AssertionError("remote gallery retrieval must be explicitly configured")
         ),
     )
     service = HakowanMCPService(root=tmp_path)

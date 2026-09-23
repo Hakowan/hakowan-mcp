@@ -32,7 +32,7 @@ from hakowan.workflow.validation import validate
 from .catalog import fragment_names, schema_fragment, spec_template, template_catalog
 
 
-_DEFAULT_GALLERY_URL = "https://hakowan.github.io/hakowan-gallery/agent/v1/index.json"
+_DEFAULT_GALLERY_URL = ""
 _MAX_REMOTE_DOCUMENT_BYTES = 8 * 1024 * 1024
 _DEFAULT_VISUAL_CRITERIA = {
     "min_occupancy": 0.02,

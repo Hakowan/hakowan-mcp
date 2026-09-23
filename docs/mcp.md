@@ -223,9 +223,7 @@ custom scales.
 
 The gallery is not required. Data inspection, schema retrieval, validation,
 compilation, rendering, observation, and patching work without it.
-`search_gallery` prefers recipes from a local checkout, then falls back to the
-published static corpus at
-`https://hakowan.github.io/hakowan-gallery/agent/v1/index.json`. If neither is
+`search_gallery` uses recipes from a local checkout. If no checkout is
 available, it returns `ok=true`, `available=false`, and an empty `matches` list
 so agents can continue normally.
 
@@ -235,12 +233,11 @@ Local checkouts are discovered in this order:
 2. `HAKOWAN_GALLERY`;
 3. a sibling `hakowan-gallery` checkout beside the workspace.
 
-Set `HAKOWAN_GALLERY_URL` to use a different static corpus URL, or to an empty
-string to disable remote retrieval. The server caches remote JSON in memory,
-revalidates the index with `ETag` or `Last-Modified`, and verifies recipe
-artifacts against the SHA-256 hashes in the index. Network and corpus errors are
-non-fatal. Private data inspection, compilation, rendering, and observation
-always remain local.
+Set `HAKOWAN_GALLERY_URL` to use an explicitly published static corpus. The
+server caches remote JSON in memory, revalidates the index with `ETag` or
+`Last-Modified`, and verifies recipe artifacts against the SHA-256 hashes in
+the index. Network and corpus errors are non-fatal. Private data inspection,
+compilation, rendering, and observation always remain local.
 
 Set `include_spec=true` only when the full canonical example is needed; compact
 metadata is cheaper for discovery.
