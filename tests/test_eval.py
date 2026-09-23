@@ -134,6 +134,7 @@ def test_wireframe_case_enforces_minimum_visible_thickness():
     intent = too_thin.compile.details["intent"]
     assert too_thin.schema.passed
     assert too_thin.semantic.passed
+    assert intent["actual_curve_size_spaces"] == ["scene"]
     assert too_thin.render.passed
     assert intent["actual_curve_sizes"] == [0.0001]
     assert intent["checks"]["curve_size"] == 0.0

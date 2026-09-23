@@ -106,9 +106,10 @@ called output paths, and pass status. Image-only passes; HTML-only, both, and
 missing output fail this focused policy check without masking FigureSpec scores.
 
 The `wireframe-overlay` case requires a surface plus a curve layer over the
-original mesh with a width in `[0.001, 0.05]`. It rejects thinner, effectively
-imperceptible lines and explicitly rejects the `boundary` transform. Boundary
-extracts only topological boundaries; it does not visualize every mesh edge.
+original mesh with a scene-relative width in `[0.001, 0.05]`. It rejects
+thinner, effectively imperceptible lines and explicitly rejects the `boundary`
+transform. Boundary extracts only topological boundaries; it does not visualize
+every mesh edge.
 
 Camera-oriented cases declare their expected world-up axis. The scorer requires
 the camera's normalized `up` vector to align positively with that axis by at

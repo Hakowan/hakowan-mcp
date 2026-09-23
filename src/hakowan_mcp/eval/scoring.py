@@ -93,10 +93,24 @@ def _intent_scores(
         and isinstance(channel.data, (int, float))
         and not isinstance(channel.data, bool)
     ]
+    curve_size_spaces = [
+        view.size_channel.space
+        for view in scene
+        if getattr(view, "mark", None) is not None
+        and view.mark.name.lower() == "curve"
+        and view.size_channel is not None
+    ]
     if case.expected.curve_size_range is not None:
         low, high = case.expected.curve_size_range
         checks["curve_size"] = float(
             bool(curve_sizes) and all(low <= size <= high for size in curve_sizes)
+        )
+    if case.expected.curve_size_space is not None:
+        checks["curve_size_space"] = float(
+            bool(curve_size_spaces)
+            and all(
+                space == case.expected.curve_size_space for space in curve_size_spaces
+            )
         )
     if case.expected.legend is not None:
         enabled = any(
@@ -118,6 +132,8 @@ def _intent_scores(
             ),
             "actual_curve_sizes": curve_sizes,
             "expected_curve_size_range": case.expected.curve_size_range,
+            "actual_curve_size_spaces": curve_size_spaces,
+            "expected_curve_size_space": case.expected.curve_size_space,
             "checks": checks,
         },
     )

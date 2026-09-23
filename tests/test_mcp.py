@@ -123,6 +123,7 @@ def test_spec_templates_are_minimal_and_schema_valid(tmp_path):
     edge_layer = wireframe["root"]["children"][1]["spec"]
     assert edge_layer["name"] == "Edges"
     assert edge_layer["channels"]["size"]["data"] == 0.005
+    assert edge_layer["channels"]["size"]["space"] == "scene"
     assert edge_layer.get("transforms", []) == []
     isolated = service.get_spec_template(
         "isolate-label", attribute="region", label_value=1
