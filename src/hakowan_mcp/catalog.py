@@ -205,7 +205,7 @@ def spec_template(
         wireframe = _layer(data_id, mark="curve")
         wireframe["spec"]["name"] = "Edges"
         wireframe["spec"]["channels"] = {
-            "size": {"kind": "size", "data": 0.01},
+            "size": {"kind": "size", "data": 0.005},
             "material": {"kind": "diffuse", "reflectance": "black"},
         }
         root = {"kind": "overlay", "children": [surface, wireframe]}

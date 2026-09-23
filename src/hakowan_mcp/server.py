@@ -21,7 +21,7 @@ rotating the geometry. For ordinary visualization or rendering requests, use
 `observe_spec` after camera fitting with `passes=["beauty"]` and the default
 Figure camera, then return the PNG path. Use `render_spec` for HTML only when
 the user explicitly requests an interactive viewer. For wireframes, overlay a
-curve mark on the original mesh with size `0.01` unless the user requests
+curve mark on the original mesh with size `0.005` unless the user requests
 another visible width; do not use the `boundary` transform, which extracts only
 topological boundaries. Add analytical observation passes only when visual
 evidence is needed. Keep WebGL `offline=false` unless the user explicitly
