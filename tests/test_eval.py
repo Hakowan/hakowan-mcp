@@ -117,22 +117,28 @@ def test_wireframe_case_rejects_boundary_only_curves():
     assert not result.final_pass
 
 
-def test_wireframe_case_rejects_imperceptibly_thin_curves():
+def test_wireframe_case_enforces_minimum_visible_thickness():
     case = next(case for case in load_cases() if case.id == "wireframe-overlay")
     mesh = dataset(case.dataset)
-    figure = hkw.figure(hkw.layer(mesh).show_edges(width=0.0001))
-    candidate = hkw.to_spec(figure, data_ids={id(mesh): "data"}).to_dict()
 
-    result = evaluate_candidate(case, candidate)
+    def candidate(width):
+        figure = hkw.figure(hkw.layer(mesh).show_edges(width=width)).camera(
+            "fit", direction="isometric"
+        )
+        return hkw.to_spec(figure, data_ids={id(mesh): "data"}).to_dict()
 
-    intent = result.compile.details["intent"]
-    assert result.schema.passed
-    assert result.semantic.passed
-    assert result.render.passed
+    minimum = evaluate_candidate(case, candidate(0.001))
+    too_thin = evaluate_candidate(case, candidate(0.0001))
+
+    assert minimum.final_pass
+    intent = too_thin.compile.details["intent"]
+    assert too_thin.schema.passed
+    assert too_thin.semantic.passed
+    assert too_thin.render.passed
     assert intent["actual_curve_sizes"] == [0.0001]
     assert intent["checks"]["curve_size"] == 0.0
-    assert result.grammar_score < 1.0
-    assert not result.final_pass
+    assert too_thin.grammar_score < 1.0
+    assert not too_thin.final_pass
 
 
 def test_schema_failure_is_scored_without_running_later_stages():
