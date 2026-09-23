@@ -701,12 +701,19 @@ class HakowanMCPService:
                 json.dumps(manifest, indent=2, sort_keys=True) + "\n",
                 encoding="utf-8",
             )
+            image_paths = [
+                item["path"]
+                for item in manifest["snapshots"]
+                if item.get("pass") == "beauty" and isinstance(item.get("path"), str)
+            ]
             result: dict[str, Any] = {
                 "ok": True,
                 "spec_id": self._store_spec(parsed),
                 "validation": report.to_dict(),
                 "output_dir": self.paths.display(directory),
                 "manifest_path": self.paths.display(directory / "manifest.json"),
+                "image_paths": image_paths,
+                "contact_sheet_path": manifest.get("contact_sheet"),
                 "evidence": manifest["evidence"],
                 "visual_diagnostics": manifest["visual_diagnostics"],
             }

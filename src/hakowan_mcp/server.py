@@ -15,11 +15,15 @@ full schema only as a last resort. Validate strictly, chain subsequent calls by
 spec_id, and repair with minimal JSON Pointer patches. Preserve explicit output
 passes and projection. Fit a perspective camera for comparisons, named
 multilayer views, and occlusion unless another projection is explicitly
-requested. Render before completion; observe only when visual evidence is
-needed. Keep WebGL `offline=false` unless the user explicitly requests a
-network-independent bundle; offline HTML must be served over HTTP and does not
-open directly through `file://`. Paths stay inside the workspace. Arbitrary
-Python functions are not accepted; use safe expression specs.
+requested. For ordinary visualization or rendering requests, use `observe_spec`
+after camera fitting with `passes=["beauty"]` and the default Figure camera,
+then return the PNG path. Use `render_spec` for HTML only when the user
+explicitly requests an interactive viewer. Add analytical observation passes
+only when visual evidence is needed. Keep WebGL `offline=false` unless the user
+explicitly requests a network-independent bundle; offline HTML must be served
+over HTTP and does not open directly through `file://`. Paths stay inside the
+workspace. Arbitrary Python functions are not accepted; use safe expression
+specs.
 """
 
 
@@ -169,7 +173,7 @@ def create_server(
         strict: bool = True,
         offline: bool = False,
     ) -> dict[str, Any]:
-        """Render a spec; offline WebGL bundles require an HTTP server."""
+        """Render an interactive or backend-native artifact when explicitly requested."""
         return service.render_spec(
             spec, output, backend, data_bindings, strict, offline
         )
@@ -186,7 +190,7 @@ def create_server(
         visual_criteria: dict[str, float] | None = None,
         include_manifest: bool = False,
     ) -> dict[str, Any]:
-        """Capture compact evidence; include the full manifest only on request."""
+        """Capture PNG output and compact visual evidence from a FigureSpec."""
         return service.observe_spec(
             spec,
             output_dir,

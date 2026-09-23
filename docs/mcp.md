@@ -78,8 +78,8 @@ the command as a project MCP server and set the project directory as `--root`.
 | `validate_spec` | Validate schema, resources, semantics, backend support, and compilation. |
 | `compile_spec` | Return resolved views, bounds, counts, legends, and annotations. |
 | `fit_camera` | Resolve scene geometry to a concrete fitted camera and minimal patch. |
-| `render_spec` | Validate and render a specification inside the workspace. |
-| `observe_spec` | Capture deterministic views, passes, visibility, and occlusion evidence. |
+| `render_spec` | Create interactive HTML or an explicitly requested backend-native artifact. |
+| `observe_spec` | Produce PNG images and deterministic visual evidence; default for visualization requests. |
 | `evaluate_visual_patch` | Compare before/after evidence and roll back non-improving patches. |
 | `get_backends` | Return declared backend features, passes, and limitations. |
 | `apply_patch` | Atomically apply JSON Pointer patches and revalidate. |
@@ -107,18 +107,24 @@ apply_patch(spec_id, ...) for repairs → retain the new spec_id
     ↓
 fit_camera(spec_id, ...) when framing matters
     ↓
-render_spec(spec_id, ...)
+observe_spec(spec_id, passes=["beauty"], ...) → return image_paths
     ↓
-observe_spec(spec_id, ...) only when visual evidence matters
-    ↓
-evaluate_visual_patch for bounded visual repairs
+evaluate_visual_patch for bounded visual repairs when needed
+
+render_spec(spec_id, ...) only for explicitly requested interactive HTML
 ```
 
-This order keeps normal tasks on compact templates and content-addressed handles.
-Do not request the complete schema for a routine visualization.
+This order keeps normal tasks on compact templates and content-addressed handles,
+and gives users and agents a directly inspectable PNG. Do not request the
+complete schema for a routine visualization.
 
-WebGL rendering uses hosted Three.js modules by default, so the generated HTML
-can be opened directly while online. Set `offline=true` only for a
+`observe_spec` is the default output path for prompts such as “visualize,”
+“render,” or “show me.” When the Figure has a camera, omit `views` and request
+`passes=["beauty"]`; the result returns workspace-relative `image_paths`.
+
+Use `render_spec` when the user explicitly requests an interactive viewer or a
+specific backend-native artifact. WebGL HTML uses hosted Three.js modules by
+default and can be opened directly while online. Set `offline=true` only for a
 network-independent asset bundle; browsers require that bundle to be served
 over HTTP rather than opened through `file://`.
 
@@ -132,12 +138,13 @@ paths, messages, and hints.
 
 `observe_spec` uses a declared Figure camera by default. If the specification
 has no camera, it captures the front, right, top, and isometric presets. Its
-default response contains compact `evidence`, `visual_diagnostics`, and a
-workspace-relative `manifest_path`. Set `include_manifest=true` only when the
-complete artifact manifest must be returned inline; it is always written to the
-output directory. Evidence covers occupancy, projected and visible bounds,
-vertex clipping, per-layer screen and element visibility, estimated occlusion,
-depth order, visible attribute ranges, legend presence, and contrast.
+default response contains workspace-relative beauty-pass `image_paths`, a
+`contact_sheet_path`, compact `evidence`, `visual_diagnostics`, and a
+`manifest_path`. Set `include_manifest=true` only when the complete artifact
+manifest must be returned inline; it is always written to the output directory.
+Evidence covers occupancy, projected and visible bounds, vertex clipping,
+per-layer screen and element visibility, estimated occlusion, depth order,
+visible attribute ranges, legend presence, and contrast.
 
 `visual_criteria` may override `min_occupancy`, `max_occupancy`,
 `max_clipped_fraction`, and `min_contrast`. Defaults are 0.02, 0.95, 0.05, and

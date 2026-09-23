@@ -492,7 +492,7 @@ def test_observe_tool_writes_structured_evidence(tmp_path):
         validated["spec_id"],
         "observation",
         views=["front"],
-        passes=["depth", "element_id", "layer_id"],
+        passes=["beauty", "depth", "element_id", "layer_id"],
         resolution=[32, 32],
     )
 
@@ -504,6 +504,8 @@ def test_observe_tool_writes_structured_evidence(tmp_path):
     assert "visibility" in manifest
     assert result["evidence"]["summary"]["view_count"] == 1
     assert isinstance(result["visual_diagnostics"], list)
+    assert result["image_paths"] == ["observation/front_beauty.png"]
+    assert result["contact_sheet_path"] == "observation/contact_sheet.png"
     assert all(not Path(item["path"]).is_absolute() for item in manifest["snapshots"])
     assert all(len(item["sha256"]) == 64 for item in manifest["snapshots"])
 
