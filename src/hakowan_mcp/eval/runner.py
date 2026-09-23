@@ -23,7 +23,7 @@ from .providers import (
 )
 from .scoring import evaluate_candidate
 
-SUITE_VERSION = "1.6"
+SUITE_VERSION = "1.7"
 PROMPT_VERSION = "1.1"
 
 

@@ -59,7 +59,7 @@
     "prompt": "Overlay black mesh edges on the original surface.",
     "recipe": "wireframe",
     "tags": ["composition", "wireframe"],
-    "expected": {"marks": ["surface", "curve"], "kinds": ["size", "diffuse"], "forbidden_kinds": ["boundary"], "curve_size_range": [0.001, 0.05], "curve_size_space": "scene", "minimum_views": 2, "camera_kind": "perspective", "camera_up_axis": "y"}
+    "expected": {"marks": ["surface", "curve"], "kinds": ["size", "diffuse"], "forbidden_kinds": ["boundary"], "curve_size_range": [0.5, 4.0], "curve_size_space": "screen", "minimum_views": 2, "camera_kind": "perspective", "camera_up_axis": "y"}
   },
   {
     "id": "velocity-glyphs",

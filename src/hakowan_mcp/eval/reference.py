@@ -28,7 +28,7 @@ def _figure(case: BenchmarkCase) -> hkw.Figure:
     elif recipe == "categorical_components":
         figure = hkw.figure(layer.color_by("region", categories=True))
     elif recipe == "wireframe":
-        figure = hkw.figure(layer.show_edges())
+        figure = hkw.figure(layer.show_edges(width=0.5, width_space="screen"))
     elif recipe == "vector_glyphs":
         figure = hkw.figure(layer.glyph_vectors("velocity", scale=0.2, overlay=False))
     elif recipe == "point_color":

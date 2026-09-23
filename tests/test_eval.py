@@ -122,21 +122,21 @@ def test_wireframe_case_enforces_minimum_visible_thickness():
     mesh = dataset(case.dataset)
 
     def candidate(width):
-        figure = hkw.figure(hkw.layer(mesh).show_edges(width=width)).camera(
-            "fit", direction="isometric"
-        )
+        figure = hkw.figure(
+            hkw.layer(mesh).show_edges(width=width, width_space="screen")
+        ).camera("fit", direction="isometric")
         return hkw.to_spec(figure, data_ids={id(mesh): "data"}).to_dict()
 
-    minimum = evaluate_candidate(case, candidate(0.001))
-    too_thin = evaluate_candidate(case, candidate(0.0001))
+    minimum = evaluate_candidate(case, candidate(0.5))
+    too_thin = evaluate_candidate(case, candidate(0.1))
 
     assert minimum.final_pass
     intent = too_thin.compile.details["intent"]
     assert too_thin.schema.passed
     assert too_thin.semantic.passed
-    assert intent["actual_curve_size_spaces"] == ["scene"]
+    assert intent["actual_curve_size_spaces"] == ["screen"]
     assert too_thin.render.passed
-    assert intent["actual_curve_sizes"] == [0.0001]
+    assert intent["actual_curve_sizes"] == [0.1]
     assert intent["checks"]["curve_size"] == 0.0
     assert too_thin.grammar_score < 1.0
     assert not too_thin.final_pass
