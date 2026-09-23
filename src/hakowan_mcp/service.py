@@ -558,20 +558,26 @@ class HakowanMCPService:
                     filename=output_path,
                     backend=cast(BackendName, backend),
                 )
+            render_result: dict[str, Any] = {
+                "backend": result.backend,
+                "path": self.paths.display(result.path) if result.path else None,
+                "outputs": {
+                    name: self.paths.display(value)
+                    if isinstance(value, Path)
+                    else value
+                    for name, value in result.outputs.items()
+                },
+            }
+            if offline and backend == "webgl":
+                render_result["usage"] = (
+                    "Serve the output directory over HTTP; browsers block the "
+                    "offline viewer's JavaScript modules under file://."
+                )
             return {
                 "ok": True,
                 "spec_id": self._store_spec(parsed),
                 "validation": report.to_dict(),
-                "render": {
-                    "backend": result.backend,
-                    "path": self.paths.display(result.path) if result.path else None,
-                    "outputs": {
-                        name: self.paths.display(value)
-                        if isinstance(value, Path)
-                        else value
-                        for name, value in result.outputs.items()
-                    },
-                },
+                "render": render_result,
             }
         except Exception as exc:
             return self._error("render.failed", exc, output=output)

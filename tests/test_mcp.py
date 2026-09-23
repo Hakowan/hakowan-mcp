@@ -199,6 +199,23 @@ def test_inspect_validate_compile_render_patch_tools(tmp_path):
     assert (tmp_path / "viewer.html").is_file()
 
 
+def test_offline_webgl_render_explains_http_requirement(tmp_path, monkeypatch):
+    mesh_path = _mesh(tmp_path / "mesh.ply")
+    service = HakowanMCPService(root=tmp_path)
+
+    def fake_render(_runtime, *, filename, backend, offline):
+        assert offline is True
+        return hkw.RenderResult(backend=backend, path=Path(filename))
+
+    monkeypatch.setattr(service_module, "render", fake_render)
+    rendered = service.render_spec(
+        _spec(mesh_path), "viewer.html", backend="webgl", offline=True
+    )
+
+    assert rendered["ok"]
+    assert "Serve the output directory over HTTP" in rendered["render"]["usage"]
+
+
 def test_fit_camera_returns_valid_minimal_patch(tmp_path):
     mesh_path = _mesh(tmp_path / "mesh.ply")
     spec = hkw.to_spec(hkw.layer(mesh_path)).to_dict()

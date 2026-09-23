@@ -117,6 +117,11 @@ evaluate_visual_patch for bounded visual repairs
 This order keeps normal tasks on compact templates and content-addressed handles.
 Do not request the complete schema for a routine visualization.
 
+WebGL rendering uses hosted Three.js modules by default, so the generated HTML
+can be opened directly while online. Set `offline=true` only for a
+network-independent asset bundle; browsers require that bundle to be served
+over HTTP rather than opened through `file://`.
+
 The agent should never invent attributes. Schema failures include stable codes,
 JSON Pointer paths, and safe removal patches when unambiguous. `apply_patch`
 operates atomically on raw JSON, so it can repair a document that does not yet

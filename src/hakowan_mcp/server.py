@@ -16,8 +16,10 @@ spec_id, and repair with minimal JSON Pointer patches. Preserve explicit output
 passes and projection. Fit a perspective camera for comparisons, named
 multilayer views, and occlusion unless another projection is explicitly
 requested. Render before completion; observe only when visual evidence is
-needed. Paths stay inside the workspace. Arbitrary Python functions are not
-accepted; use safe expression specs.
+needed. Keep WebGL `offline=false` unless the user explicitly requests a
+network-independent bundle; offline HTML must be served over HTTP and does not
+open directly through `file://`. Paths stay inside the workspace. Arbitrary
+Python functions are not accepted; use safe expression specs.
 """
 
 
@@ -167,7 +169,7 @@ def create_server(
         strict: bool = True,
         offline: bool = False,
     ) -> dict[str, Any]:
-        """Validate and render a FigureSpec inside the configured workspace."""
+        """Render a spec; offline WebGL bundles require an HTTP server."""
         return service.render_spec(
             spec, output, backend, data_bindings, strict, offline
         )
