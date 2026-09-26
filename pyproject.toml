@@ -10,7 +10,7 @@ readme = "README.md"
 dynamic = ["description", "version"]
 requires-python = ">=3.11"
 dependencies = [
-    "hakowan>=0.6,<0.7",
+    "hakowan>=0.6.0,<0.7",
     "mcp>=2,<3",
     "pydantic>=2.10,<3",
 ]
@@ -20,10 +20,10 @@ hakowan-mcp = "hakowan_mcp.__main__:main"
 hakowan-mcp-eval = "hakowan_mcp.eval.runner:main"
 
 [project.optional-dependencies]
-observe = ["hakowan[observe]>=0.6,<0.7"]
-data = ["hakowan[data]>=0.6,<0.7"]
+observe = ["hakowan[observe]>=0.6.0,<0.7"]
+data = ["hakowan[data]>=0.6.0,<0.7"]
 dev = [
-    "hakowan[observe]>=0.6,<0.7",
+    "hakowan[observe]>=0.6.0,<0.7",
     "pytest>=9,<10",
     "ruff>=0.12,<0.13",
     "mypy>=1.19,<1.20",

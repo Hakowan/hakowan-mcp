@@ -2,7 +2,6 @@ name: CI
 
 on:
   push:
-  pull_request:
 
 permissions:
   contents: read
@@ -19,7 +18,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: Hakowan/hakowan
-          ref: dev/0.6.0
+          ref: v0.6.0
           path: hakowan
       - name: Set up Python
         uses: actions/setup-python@v5
