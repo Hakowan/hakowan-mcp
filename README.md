@@ -65,5 +65,5 @@ owns MCP transport, agent instructions, gallery grounding, host execution, and
 LLM evaluation. It imports Hakowan's public APIs and does not fork its schema or
 validator.
 
-The initial implementation was extracted from Hakowan commit `1012b00`; the
-repositories now evolve independently through the version range above.
+The initial implementation was extracted from Hakowan commit `1012b00`. This
+release targets the Hakowan 0.6 series and CI verifies compatibility with v0.6.0.
