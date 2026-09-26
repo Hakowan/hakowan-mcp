@@ -10,32 +10,17 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out hakowan-mcp
-        uses: actions/checkout@v4
-        with:
-          path: hakowan-mcp
-      - name: Check out Hakowan
-        uses: actions/checkout@v4
-        with:
-          repository: Hakowan/hakowan
-          ref: v0.6.0
-          path: hakowan
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
-      - name: Install packages
+      - name: Install
         run: |
-          python -m pip install --upgrade pip
-          python -m pip install -e ./hakowan
-          python -m pip install -e './hakowan-mcp[dev]'
+          python -m pip install -e '.[dev]'
           python -m playwright install --with-deps chromium
-      - name: Lint
-        working-directory: hakowan-mcp
+      - name: Check
         run: |
           python -m ruff check src tests
           python -m ruff format --check src tests
           python -m mypy src/hakowan_mcp
-      - name: Test
-        working-directory: hakowan-mcp
-        run: python -m pytest -q
+          python -m pytest -q
